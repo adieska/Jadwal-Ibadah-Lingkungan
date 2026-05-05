@@ -75,19 +75,19 @@ export default function App() {
 
   const [ministers, setMinisters] = useState<string[]>(() => {
     const saved = localStorage.getItem('ibadah_ministers');
-    return saved ? JSON.parse(saved) : ['Pastor Paroki', 'Ketua Lingkungan', 'Tim Liturgi'];
+    return saved ? JSON.parse(saved) : ['Bp. Andreas', 'Ibu Maria', 'Bp. Yohanes'];
   });
   const [newMinister, setNewMinister] = useState('');
 
   const [agendas, setAgendas] = useState<string[]>(() => {
     const saved = localStorage.getItem('ibadah_agendas');
-    return saved ? JSON.parse(saved) : ['Pertemuan I', 'Pertemuan II', 'Pertemuan III'];
+    return saved ? JSON.parse(saved) : ['Bp. Lukas', 'Ibu Marta', 'Bp. Simon'];
   });
   const [newAgenda, setNewAgenda] = useState('');
 
   const [officialsList, setOfficialsList] = useState<string[]>(() => {
     const saved = localStorage.getItem('ibadah_officials');
-    return saved ? JSON.parse(saved) : ['Petugas Liturgi', 'Petugas Musik', 'Petugas Multimedia'];
+    return saved ? JSON.parse(saved) : ['Sdr. Petrus', 'Sdri. Elisabeth', 'Bp. Matius'];
   });
   const [newOfficial, setNewOfficial] = useState('');
 
@@ -101,6 +101,7 @@ export default function App() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotification, setShowNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
+  const [inIframe, setInIframe] = useState(false);
 
   const days = [
     { label: 'Minggu', value: 0 },
@@ -150,6 +151,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('ibadah_host_pool', JSON.stringify(hostPool));
   }, [hostPool]);
+
+  useEffect(() => {
+    setInIframe(window.self !== window.top);
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('ibadah_version', version.toString());
@@ -446,25 +451,25 @@ export default function App() {
   };
 
   const handlePrint = () => {
-    // Standard focus for better support
-    window.focus();
+    // Immediate feedback so user knows the click was registered
+    notify('Mempersiapkan dokumen...', 'success');
     
-    // Inform user about iframe limitations if print doesn't trigger
-    const printTimer = setTimeout(() => {
-      notify('Tips: Jika dialog cetak tidak muncul, klik tombol "Buka di Tab Baru" di pojok kanan atas layar.', 'success');
-    }, 2000);
-
-    try {
-      // In many iframe environments, direct window.print() is blocked or ignored.
-      // We trigger it and rely on the timeout above to guide the user if it fails.
-      window.print();
-      // If print was successful (or at least dialog opened), clear the instructional timer
-      // though we can't reliably detect if print dialog closed/opened.
-    } catch (err) {
-      console.error('Print failed:', err);
-      notify('Fitur cetak terhalang browser. Silakan buka aplikasi di TAB BARU.', 'error');
-      clearTimeout(printTimer);
-    }
+    // Give time for notification to show and ensure the window is active
+    setTimeout(() => {
+      try {
+        window.focus();
+        // Trigger print
+        window.print();
+        
+        // After calling print, show a helpful hint in case it was blocked
+        setTimeout(() => {
+          notify('Tips: Jika dialog cetak tidak muncul, silakan klik tombol "Buka di Tab Baru" di pojok kanan atas.', 'success');
+        }, 1500);
+      } catch (err) {
+        console.error('Print failed:', err);
+        notify('Fitur cetak terhalang browser. Silakan buka aplikasi di TAB BARU.', 'error');
+      }
+    }, 500);
   };
 
   const filteredItems = items.filter(item => 
@@ -591,8 +596,27 @@ export default function App() {
                 Cetak PDF
                 
                 {/* Information Badge for iFrame users */}
-                <div className="absolute -top-1 -right-1 w-2 h-2 bg-indigo-500 rounded-full animate-pulse md:hidden" />
+                {inIframe && (
+                  <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-500 rounded-full animate-pulse shadow-sm" />
+                )}
               </button>
+
+              {inIframe && (
+                <a
+                  href={window.location.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cn(
+                    "px-4 py-2.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold transition-all flex items-center gap-2 hover:bg-slate-200 dark:hover:bg-slate-700",
+                    darkMode ? "text-slate-300" : "text-slate-600"
+                  )}
+                  title="Buka di tab baru untuk fitur Cetak yang lancar"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  Buka di Tab Baru
+                </a>
+              )}
+
               <button
                 onClick={exportToExcel}
                 className={cn(
@@ -939,7 +963,7 @@ export default function App() {
                   <label className={cn(
                     "text-[11px] font-bold uppercase tracking-wider ml-1",
                     darkMode ? "text-slate-500" : "text-slate-400"
-                  )}>Daftar Pilihan Pelayan</label>
+                  )}>Daftar Pilihan Pengkhotbah</label>
                   <button
                     onClick={handleAutoFillMinisters}
                     className={cn(
@@ -956,7 +980,7 @@ export default function App() {
                     <span className={cn(
                       "text-xs italic",
                       darkMode ? "text-slate-700" : "text-slate-300"
-                    )}>Belum ada nama pelayan yang ditambahkan.</span>
+                    )}>Belum ada nama Pengkhotbah yang ditambahkan.</span>
                   ) : (
                     ministers.map((name) => {
                       const count = getDutyCount(name, 'sermon');
@@ -1038,7 +1062,7 @@ export default function App() {
                   <label className={cn(
                     "text-[11px] font-bold uppercase tracking-wider ml-1",
                     darkMode ? "text-slate-500" : "text-slate-400"
-                  )}>Daftar Pilihan Pelayan Paragenda</label>
+                  )}>Daftar Pilihan Paragenda</label>
                   <button
                     onClick={handleAutoFillAgendas}
                     className={cn(
@@ -1055,7 +1079,7 @@ export default function App() {
                     <span className={cn(
                       "text-xs italic",
                       darkMode ? "text-slate-700" : "text-slate-300"
-                    )}>Belum ada nama pelayan paragenda yang ditambahkan.</span>
+                    )}>Belum ada nama Paragenda yang ditambahkan.</span>
                   ) : (
                     agendas.map((name) => {
                       const count = getDutyCount(name, 'agenda');
@@ -1154,7 +1178,7 @@ export default function App() {
                     <span className={cn(
                       "text-xs italic",
                       darkMode ? "text-slate-700" : "text-slate-300"
-                    )}>Belum ada nama pembawa acara yang ditambahkan.</span>
+                    )}>Belum ada nama Pembawa Acara yang ditambahkan.</span>
                   ) : (
                     officialsList.map((name) => {
                       const count = getDutyCount(name, 'officials');
