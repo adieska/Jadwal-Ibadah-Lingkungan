@@ -20,7 +20,9 @@ import {
   Search,
   CheckCircle2,
   AlertCircle,
-  Zap
+  Zap,
+  Moon,
+  Sun
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import * as XLSX from 'xlsx';
@@ -55,6 +57,12 @@ export default function App() {
 
   const [lastUpdated, setLastUpdated] = useState<string>(() => {
     return localStorage.getItem('ibadah_last_updated') || new Date().toISOString();
+  });
+
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    const saved = localStorage.getItem('ibadah_dark_mode');
+    if (saved === null) return false;
+    return saved === 'true';
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -150,6 +158,16 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('ibadah_last_updated', lastUpdated);
   }, [lastUpdated]);
+
+  useEffect(() => {
+    localStorage.setItem('ibadah_dark_mode', darkMode.toString());
+    const root = window.document.documentElement;
+    if (darkMode) {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+  }, [darkMode]);
 
   const notify = (message: string, type: 'success' | 'error' = 'success') => {
     setShowNotification({ message, type });
@@ -471,7 +489,10 @@ export default function App() {
   const allStats = getAllStats();
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-indigo-100">
+    <div className={cn(
+      "min-h-screen font-sans selection:bg-indigo-100 transition-colors duration-500",
+      darkMode ? "bg-slate-950 text-slate-100" : "bg-white text-slate-900"
+    )}>
       {/* Notification */}
       <AnimatePresence>
         {showNotification && (
@@ -480,8 +501,10 @@ export default function App() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -50 }}
             className={cn(
-              "fixed top-6 right-6 z-50 px-6 py-4 rounded-lg shadow-xl flex items-center gap-3 border bg-white",
-              showNotification.type === 'success' ? "border-green-100 text-green-800" : "border-red-100 text-red-800"
+              "fixed top-6 right-6 z-50 px-6 py-4 rounded-lg shadow-xl flex items-center gap-3 border transition-colors",
+              darkMode 
+                ? "bg-slate-900 border-slate-800 text-slate-100 shadow-2xl" 
+                : "bg-white border-slate-100 text-slate-800 shadow-indigo-100/50"
             )}
           >
             {showNotification.type === 'success' ? <CheckCircle2 className="w-5 h-5 text-green-500" /> : <AlertCircle className="w-5 h-5 text-red-500" />}
@@ -491,29 +514,63 @@ export default function App() {
       </AnimatePresence>
 
         {/* Header - Professional Polish Style */}
-        <header className="bg-white border-b border-slate-200 px-8 py-4 sticky top-0 z-40">
+        <header className={cn(
+          "border-b px-8 py-4 sticky top-0 z-40 transition-colors",
+          darkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"
+        )}>
           <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-200">
+              <div className={cn(
+                "w-12 h-12 rounded-xl flex items-center justify-center text-white transition-all",
+                darkMode ? "bg-indigo-600 shadow-indigo-900/20" : "bg-indigo-600 shadow-lg shadow-indigo-100"
+              )}>
                 <CalendarIcon className="w-6 h-6" />
               </div>
               <div>
-                <h1 className="text-xl font-bold tracking-tight text-slate-800 leading-none mb-1">Jadwal Ibadah Lingkungan</h1>
-                <p className="text-[10px] text-slate-400 uppercase tracking-[0.2em] font-bold">Generator Jadwal Ibadah Lingkungan/Sektor/Lungguk/Weijk</p>
+                <h1 className={cn(
+                  "text-xl font-bold tracking-tight transition-colors leading-none mb-1",
+                  darkMode ? "text-slate-100" : "text-slate-800"
+                )}>Jadwal Ibadah Lingkungan</h1>
+                <p className={cn(
+                  "text-[10px] uppercase tracking-[0.2em] font-bold transition-colors",
+                  darkMode ? "text-slate-500" : "text-slate-400"
+                )}>Generator Jadwal Ibadah Lingkungan/Sektor/Lungguk/Weijk</p>
               </div>
             </div>
             
-            <div className="flex flex-wrap gap-2 justify-center">
+            <div className="flex flex-wrap gap-2 justify-center items-center">
+              <button
+                onClick={() => setDarkMode(!darkMode)}
+                className={cn(
+                  "p-2.5 border rounded-lg transition-all mr-2",
+                  darkMode 
+                    ? "bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700" 
+                    : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                )}
+                title={darkMode ? "Aktifkan Mode Terang" : "Aktifkan Mode Gelap"}
+              >
+                {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5 transition-transform hover:rotate-12" />}
+              </button>
               <button
                 onClick={handlePrint}
-                className="px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center gap-2"
+                className={cn(
+                  "px-4 py-2.5 border rounded-lg text-sm font-semibold transition-all flex items-center gap-2",
+                  darkMode 
+                    ? "bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700 hover:border-slate-600" 
+                    : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"
+                )}
               >
                 <Printer className="w-4 h-4" />
                 Cetak PDF
               </button>
               <button
                 onClick={exportToExcel}
-                className="px-5 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-md shadow-indigo-100 active:scale-95"
+                className={cn(
+                  "px-5 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2 shadow-sm active:scale-95",
+                  darkMode 
+                    ? "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-900/20" 
+                    : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-200"
+                )}
               >
                 <Download className="w-4 h-4" />
                 Ekspor Excel
@@ -521,7 +578,10 @@ export default function App() {
               {items.length > 0 && (
                 <button
                   onClick={handleClearAll}
-                  className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                  className={cn(
+                    "p-2.5 rounded-lg transition-all",
+                    darkMode ? "text-slate-500 hover:text-red-500 hover:bg-red-900/20" : "text-slate-400 hover:text-red-500 hover:bg-red-50"
+                  )}
                   title="Hapus Semua"
                 >
                   <Trash2 className="w-5 h-5" />
@@ -539,36 +599,64 @@ export default function App() {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden"
+                className={cn(
+                  "rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border transition-all",
+                  darkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"
+                )}
               >
-                <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                  <h3 className="font-bold text-slate-800">Bulk Import Tuan Rumah & Alamat</h3>
-                  <button onClick={() => setShowBulkModal(false)} className="text-slate-400 hover:text-slate-600">
+                <div className={cn(
+                  "p-6 border-b flex justify-between items-center transition-colors",
+                  darkMode ? "bg-slate-800/50 border-slate-800" : "bg-slate-50 border-slate-100"
+                )}>
+                  <h3 className={cn("font-bold", darkMode ? "text-slate-100" : "text-slate-800")}>Bulk Import Tuan Rumah & Alamat</h3>
+                  <button onClick={() => setShowBulkModal(false)} className={cn(
+                    "transition-colors",
+                    darkMode ? "text-slate-500 hover:text-slate-200" : "text-slate-400 hover:text-slate-600"
+                  )}>
                     <Trash2 className="w-5 h-5" />
                   </button>
                 </div>
                 <div className="p-6 space-y-4">
-                  <p className="text-xs text-slate-500 leading-relaxed italic">
+                  <p className={cn(
+                    "text-xs leading-relaxed italic transition-colors",
+                    darkMode ? "text-slate-400" : "text-slate-500"
+                  )}>
                     Tempel data dari teks/Excel. Format per baris: <br />
-                    <code className="bg-slate-100 px-1 rounded">Nama Tuan Rumah, Alamat Lengkap</code>
+                    <code className={cn(
+                      "px-1 rounded transition-colors",
+                      darkMode ? "bg-slate-800" : "bg-slate-100"
+                    )}>Nama Tuan Rumah, Alamat Lengkap</code>
                   </p>
                   <textarea
                     rows={10}
                     placeholder="Contoh:&#10;Keluarga Bp. Andreas, Jl. Mawar No. 10&#10;Ibu Maria, Jl. Melati Blok C5"
-                    className="w-full bg-slate-50 border border-slate-100 rounded-xl p-4 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                    className={cn(
+                      "w-full border rounded-xl p-4 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all",
+                      darkMode 
+                        ? "bg-slate-950 border-slate-800 text-slate-200" 
+                        : "bg-white border-slate-100 text-slate-700 shadow-sm"
+                    )}
                     value={bulkText}
                     onChange={(e) => setBulkText(e.target.value)}
                   />
                   <div className="flex gap-3">
                     <button
                       onClick={() => setShowBulkModal(false)}
-                      className="flex-1 py-3 border border-slate-200 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-50"
+                      className={cn(
+                        "flex-1 py-3 border rounded-xl text-sm font-bold transition-all",
+                        darkMode 
+                          ? "border-slate-700 text-slate-400 hover:bg-slate-800" 
+                          : "border-slate-200 text-slate-500 hover:bg-slate-50"
+                      )}
                     >
                       Batal
                     </button>
                     <button
                       onClick={handleBulkImport}
-                      className="flex-1 py-3 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-100"
+                      className={cn(
+                        "flex-1 py-3 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 shadow-lg transition-all",
+                        darkMode ? "shadow-none" : "shadow-indigo-100"
+                      )}
                     >
                       Impor Sekarang
                     </button>
@@ -587,15 +675,26 @@ export default function App() {
             <div className="border-b-2 border-slate-900 w-full mt-4"></div>
           </div>
 
-          {/* Generator Controls - The New Core Feature */}
-          <section className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 space-y-8">
+            {/* Generator Controls - The New Core Feature */}
+          <section className={cn(
+            "border rounded-2xl p-6 space-y-8 transition-colors",
+            darkMode ? "bg-slate-900 border-slate-800 shadow-none" : "bg-white border-slate-200 shadow-sm shadow-indigo-100/30"
+          )}>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
               <div className="space-y-2">
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Pilih Hari Ibadah Lingkungan</label>
+                <label className={cn(
+                  "text-[11px] font-bold uppercase tracking-wider ml-1 transition-colors",
+                  darkMode ? "text-slate-500" : "text-slate-400"
+                )}>Pilih Hari Ibadah Lingkungan</label>
                 <select
                   value={generatorSettings.dayOfWeek}
                   onChange={(e) => setGeneratorSettings(prev => ({ ...prev, dayOfWeek: parseInt(e.target.value) }))}
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-indigo-500 transition-all outline-none"
+                  className={cn(
+                    "w-full border rounded-xl px-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-indigo-500 transition-all outline-none",
+                    darkMode 
+                      ? "bg-slate-950 border-slate-800 text-slate-200" 
+                      : "bg-slate-50 border-slate-100 text-slate-700 hover:border-slate-200"
+                  )}
                 >
                   {days.map(day => (
                     <option key={day.value} value={day.value}>{day.label}</option>
@@ -603,26 +702,47 @@ export default function App() {
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Dari Tanggal</label>
+                <label className={cn(
+                  "text-[11px] font-bold uppercase tracking-wider ml-1 transition-colors",
+                  darkMode ? "text-slate-500" : "text-slate-400"
+                )}>Dari Tanggal</label>
                 <input
                   type="date"
                   value={generatorSettings.startDate}
                   onChange={(e) => setGeneratorSettings(prev => ({ ...prev, startDate: e.target.value }))}
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-indigo-500 transition-all outline-none"
+                  className={cn(
+                    "w-full border rounded-xl px-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-indigo-500 transition-all outline-none",
+                    darkMode 
+                      ? "bg-slate-950 border-slate-800 text-slate-200 color-scheme-dark font-mono" 
+                      : "bg-slate-50 border-slate-100 text-slate-700 font-mono"
+                  )}
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Sampai Tanggal</label>
+                <label className={cn(
+                  "text-[11px] font-bold uppercase tracking-wider ml-1 transition-colors",
+                  darkMode ? "text-slate-500" : "text-slate-400"
+                )}>Sampai Tanggal</label>
                 <input
                   type="date"
                   value={generatorSettings.endDate}
                   onChange={(e) => setGeneratorSettings(prev => ({ ...prev, endDate: e.target.value }))}
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-indigo-500 transition-all outline-none"
+                  className={cn(
+                    "w-full border rounded-xl px-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-indigo-500 transition-all outline-none",
+                    darkMode 
+                      ? "bg-slate-950 border-slate-800 text-slate-200 color-scheme-dark font-mono" 
+                      : "bg-slate-50 border-slate-100 text-slate-700 font-mono"
+                  )}
                 />
               </div>
               <button
                 onClick={handleGenerate}
-                className="w-full py-3.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg"
+                className={cn(
+                  "w-full py-3.5 rounded-xl font-bold text-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2",
+                  darkMode 
+                    ? "bg-indigo-600 text-white hover:bg-indigo-700 shadow-none" 
+                    : "bg-slate-900 text-white hover:bg-slate-800 shadow-xl shadow-indigo-100/50"
+                )}
               >
                 <Plus className="w-5 h-5" />
                 Generate Jadwal
@@ -630,14 +750,20 @@ export default function App() {
             </div>
 
             {/* Host & Address Management Pool */}
-            <div className="pt-6 border-t border-slate-100">
+            <div className={cn(
+              "pt-6 border-t transition-colors",
+              darkMode ? "border-slate-800" : "border-slate-100"
+            )}>
               <div className="flex flex-col md:flex-row gap-8 items-start">
                 <div className="w-full md:w-1/3 space-y-4">
                   <div className="flex justify-between items-center">
-                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Kelola Daftar Tuan Rumah</label>
+                    <label className={cn(
+                      "text-[11px] font-bold uppercase tracking-wider ml-1 transition-colors",
+                      darkMode ? "text-slate-500" : "text-slate-400"
+                    )}>Kelola Daftar Tuan Rumah</label>
                     <button 
                       onClick={() => setShowBulkModal(true)}
-                      className="text-[10px] font-bold text-indigo-600 hover:underline"
+                      className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
                     >
                       Paste/Impor Data
                     </button>
@@ -646,20 +772,35 @@ export default function App() {
                     <input
                       type="text"
                       placeholder="Nama Tuan Rumah"
-                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 text-sm font-semibold outline-none focus:ring-2 focus:ring-indigo-500"
+                      className={cn(
+                        "w-full border rounded-xl px-4 py-2 text-sm font-semibold outline-none transition-all focus:ring-2 focus:ring-indigo-500",
+                        darkMode 
+                          ? "bg-slate-950 border-slate-800 text-slate-200" 
+                          : "bg-white border-slate-200 text-slate-700 shadow-sm"
+                      )}
                       value={newHost.name}
                       onChange={(e) => setNewHost(prev => ({...prev, name: e.target.value}))}
                     />
                     <textarea
                       placeholder="Alamat Lengkap"
                       rows={2}
-                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 text-sm font-semibold outline-none focus:ring-2 focus:ring-indigo-500"
+                      className={cn(
+                        "w-full border rounded-xl px-4 py-2 text-sm font-semibold outline-none transition-all focus:ring-2 focus:ring-indigo-500",
+                        darkMode 
+                          ? "bg-slate-950 border-slate-800 text-slate-200" 
+                          : "bg-white border-slate-200 text-slate-700 shadow-sm"
+                      )}
                       value={newHost.address}
                       onChange={(e) => setNewHost(prev => ({...prev, address: e.target.value}))}
                     />
                     <button
                       onClick={handleAddHost}
-                      className="w-full py-2.5 bg-indigo-50 text-indigo-600 rounded-xl text-sm font-bold hover:bg-indigo-100 transition-all"
+                      className={cn(
+                        "w-full py-2.5 rounded-xl font-bold transition-all font-black uppercase tracking-widest text-[10px]",
+                        darkMode 
+                          ? "bg-indigo-900/20 text-indigo-400 hover:bg-indigo-900/30" 
+                          : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
+                      )}
                     >
                       Tambah ke Daftar
                     </button>
@@ -668,10 +809,18 @@ export default function App() {
                 
                 <div className="flex-1 space-y-4">
                   <div className="flex justify-between items-end">
-                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Daftar Slot Tuan Rumah ({hostPool.length})</label>
+                    <label className={cn(
+                      "text-[11px] font-bold uppercase tracking-wider ml-1 transition-colors",
+                      darkMode ? "text-slate-500" : "text-slate-400"
+                    )}>Daftar Slot Tuan Rumah ({hostPool.length})</label>
                     <button
                       onClick={handleAutoFillHosts}
-                      className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-lg transition-all"
+                      className={cn(
+                        "flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all px-3 py-1.5 rounded-lg",
+                        darkMode 
+                          ? "text-indigo-400 hover:text-indigo-300 bg-indigo-900/20" 
+                          : "text-indigo-600 hover:text-indigo-700 bg-indigo-50"
+                      )}
                     >
                       <Zap className="w-3 h-3 fill-current" />
                       Otomatisasi Tuan Rumah & Alamat
@@ -680,19 +829,34 @@ export default function App() {
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                     {hostPool.length === 0 ? (
-                      <div className="col-span-full py-10 text-center border-2 border-dashed border-slate-100 rounded-2xl text-slate-300 text-sm italic">
+                      <div className={cn(
+                        "col-span-full py-10 text-center border-2 border-dashed rounded-2xl text-sm italic transition-colors",
+                        darkMode ? "border-slate-800 text-slate-700" : "border-slate-100 text-slate-300"
+                      )}>
                         Belum ada daftar tuan rumah
                       </div>
                     ) : (
                       hostPool.map((host, idx) => (
-                        <div key={idx} className="bg-white border border-slate-100 p-3 rounded-xl flex justify-between items-start group hover:border-indigo-200 transition-all shadow-sm">
+                        <div key={idx} className={cn(
+                          "border p-3 rounded-xl flex justify-between items-start group hover:border-indigo-200 transition-all shadow-sm",
+                          darkMode ? "bg-slate-950 border-slate-800" : "bg-white border-slate-100"
+                        )}>
                           <div className="space-y-0.5">
-                            <div className="text-xs font-black text-slate-800">{host.name}</div>
-                            <div className="text-[10px] text-slate-400 line-clamp-1">{host.address}</div>
+                            <div className={cn(
+                              "text-xs font-black",
+                              darkMode ? "text-slate-200" : "text-slate-800"
+                            )}>{host.name}</div>
+                            <div className={cn(
+                              "text-[10px]",
+                              darkMode ? "text-slate-500" : "text-slate-400"
+                            )}>{host.address}</div>
                           </div>
                           <button 
                             onClick={() => handleDeleteHost(idx)}
-                            className="text-slate-200 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                            className={cn(
+                              "transition-colors opacity-0 group-hover:opacity-100",
+                              darkMode ? "text-slate-800 hover:text-red-500" : "text-slate-200 hover:text-red-500"
+                            )}
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -705,10 +869,16 @@ export default function App() {
             </div>
 
           {/* New Minister Management Section */}
-          <div className="pt-6 border-t border-slate-100">
+          <div className={cn(
+            "pt-6 border-t transition-colors",
+            darkMode ? "border-slate-800" : "border-slate-100"
+          )}>
             <div className="flex flex-col md:flex-row gap-6 items-start">
               <div className="w-full md:w-1/3 space-y-2">
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Tambah Nama Pengkhotbah</label>
+                <label className={cn(
+                  "text-[11px] font-bold uppercase tracking-wider ml-1",
+                  darkMode ? "text-slate-500" : "text-slate-400"
+                )}>Tambah Nama Pengkhotbah</label>
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -716,11 +886,19 @@ export default function App() {
                     value={newMinister}
                     onChange={(e) => setNewMinister(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleAddMinister()}
-                    className="flex-1 bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-indigo-500 outline-none"
+                    className={cn(
+                      "flex-1 border rounded-xl px-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-indigo-500 outline-none transition-all",
+                      darkMode 
+                        ? "bg-slate-950 border-slate-800 text-slate-200" 
+                        : "bg-white border-slate-100 text-slate-700 shadow-sm"
+                    )}
                   />
                   <button
                     onClick={handleAddMinister}
-                    className="p-3 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 transition-all"
+                    className={cn(
+                      "p-3 rounded-xl transition-all",
+                      darkMode ? "bg-indigo-900/20 text-indigo-400 hover:bg-indigo-900/30" : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
+                    )}
                   >
                     <Plus className="w-5 h-5" />
                   </button>
@@ -728,10 +906,16 @@ export default function App() {
               </div>
               <div className="flex-1 space-y-2">
                 <div className="flex justify-between items-end">
-                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Daftar Pilihan Pelayan</label>
+                  <label className={cn(
+                    "text-[11px] font-bold uppercase tracking-wider ml-1",
+                    darkMode ? "text-slate-500" : "text-slate-400"
+                  )}>Daftar Pilihan Pelayan</label>
                   <button
                     onClick={handleAutoFillMinisters}
-                    className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-lg transition-all"
+                    className={cn(
+                      "flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all px-3 py-1.5 rounded-lg",
+                      darkMode ? "text-indigo-400 hover:text-indigo-300 bg-indigo-900/20" : "text-indigo-600 hover:text-indigo-700 bg-indigo-50"
+                    )}
                   >
                     <Zap className="w-3 h-3 fill-current" />
                     Otomatisasi Nama Pengkhotbah
@@ -739,24 +923,38 @@ export default function App() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {ministers.length === 0 ? (
-                    <span className="text-xs text-slate-300 italic">Belum ada nama pelayan yang ditambahkan.</span>
+                    <span className={cn(
+                      "text-xs italic",
+                      darkMode ? "text-slate-700" : "text-slate-300"
+                    )}>Belum ada nama pelayan yang ditambahkan.</span>
                   ) : (
                     ministers.map((name) => {
                       const count = getDutyCount(name, 'sermon');
                       return (
                         <div 
                           key={name}
-                          className="bg-white border border-slate-200 px-3 py-1.5 rounded-full flex items-center gap-2 text-xs font-bold text-slate-600 group hover:border-indigo-200 transition-all"
+                          className={cn(
+                            "border px-3 py-1.5 rounded-full flex items-center gap-2 text-xs font-bold transition-all group",
+                            darkMode 
+                              ? "bg-slate-950 border-slate-800 text-slate-300 hover:border-indigo-900" 
+                              : "bg-white border-slate-200 text-slate-600 hover:border-indigo-200"
+                          )}
                         >
                           {name}
                           {count > 0 && (
-                            <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-md">
+                            <span className={cn(
+                              "text-[10px] px-1.5 py-0.5 rounded-md",
+                              darkMode ? "bg-slate-800 text-slate-400" : "bg-indigo-50 text-indigo-600"
+                            )}>
                               {count}x
                             </span>
                           )}
                           <button 
                             onClick={() => handleDeleteMinister(name)}
-                            className="text-slate-300 hover:text-red-500 transition-colors"
+                            className={cn(
+                              "transition-colors",
+                              darkMode ? "text-slate-600 hover:text-red-500" : "text-slate-400 hover:text-red-500"
+                            )}
                           >
                             <Trash2 className="w-3 h-3" />
                           </button>
@@ -770,10 +968,16 @@ export default function App() {
           </div>
 
           {/* New Agenda Management Section */}
-          <div className="pt-6 border-t border-slate-100">
+          <div className={cn(
+            "pt-6 border-t transition-colors",
+            darkMode ? "border-slate-800" : "border-slate-100"
+          )}>
             <div className="flex flex-col md:flex-row gap-6 items-start">
               <div className="w-full md:w-1/3 space-y-2">
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Tambah Nama Paragenda</label>
+                <label className={cn(
+                  "text-[11px] font-bold uppercase tracking-wider ml-1",
+                  darkMode ? "text-slate-500" : "text-slate-400"
+                )}>Tambah Nama Paragenda</label>
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -781,11 +985,19 @@ export default function App() {
                     value={newAgenda}
                     onChange={(e) => setNewAgenda(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleAddAgenda()}
-                    className="flex-1 bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-indigo-500 outline-none"
+                    className={cn(
+                      "flex-1 border rounded-xl px-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-indigo-500 outline-none transition-all",
+                      darkMode 
+                        ? "bg-slate-950 border-slate-800 text-slate-200 shadow-none" 
+                        : "bg-white border-slate-100 text-slate-700 shadow-sm"
+                    )}
                   />
                   <button
                     onClick={handleAddAgenda}
-                    className="p-3 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 transition-all"
+                    className={cn(
+                      "p-3 rounded-xl transition-all",
+                      darkMode ? "bg-indigo-900/20 text-indigo-400 hover:bg-indigo-900/30" : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100 shadow-sm"
+                    )}
                   >
                     <Plus className="w-5 h-5" />
                   </button>
@@ -793,10 +1005,16 @@ export default function App() {
               </div>
               <div className="flex-1 space-y-2">
                 <div className="flex justify-between items-end">
-                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Daftar Pilihan Pelayan Paragenda</label>
+                  <label className={cn(
+                    "text-[11px] font-bold uppercase tracking-wider ml-1",
+                    darkMode ? "text-slate-500" : "text-slate-400"
+                  )}>Daftar Pilihan Pelayan Paragenda</label>
                   <button
                     onClick={handleAutoFillAgendas}
-                    className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-lg transition-all"
+                    className={cn(
+                      "flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all px-3 py-1.5 rounded-lg",
+                      darkMode ? "text-indigo-400 hover:text-indigo-300 bg-indigo-900/20" : "text-indigo-600 hover:text-indigo-700 bg-indigo-50"
+                    )}
                   >
                     <Zap className="w-3 h-3 fill-current" />
                     Otomatisasi Nama Paragenda
@@ -804,24 +1022,38 @@ export default function App() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {agendas.length === 0 ? (
-                    <span className="text-xs text-slate-300 italic">Belum ada nama pelayan paragenda yang ditambahkan.</span>
+                    <span className={cn(
+                      "text-xs italic",
+                      darkMode ? "text-slate-700" : "text-slate-300"
+                    )}>Belum ada nama pelayan paragenda yang ditambahkan.</span>
                   ) : (
                     agendas.map((name) => {
                       const count = getDutyCount(name, 'agenda');
                       return (
                         <div 
                           key={name}
-                          className="bg-white border border-slate-200 px-3 py-1.5 rounded-full flex items-center gap-2 text-xs font-bold text-slate-600 group hover:border-indigo-200 transition-all"
+                          className={cn(
+                            "border px-3 py-1.5 rounded-full flex items-center gap-2 text-xs font-bold transition-all group",
+                            darkMode 
+                              ? "bg-slate-950 border-slate-800 text-slate-300 hover:border-indigo-900" 
+                              : "bg-white border-slate-200 text-slate-600 hover:border-indigo-200"
+                          )}
                         >
                           {name}
                           {count > 0 && (
-                            <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-md">
+                            <span className={cn(
+                              "text-[10px] px-1.5 py-0.5 rounded-md",
+                              darkMode ? "bg-slate-800 text-slate-400" : "bg-indigo-50 text-indigo-600"
+                            )}>
                               {count}x
                             </span>
                           )}
                           <button 
                             onClick={() => handleDeleteAgenda(name)}
-                            className="text-slate-300 hover:text-red-500 transition-colors"
+                            className={cn(
+                              "transition-colors",
+                              darkMode ? "text-slate-600 hover:text-red-500" : "text-slate-400 hover:text-red-500"
+                            )}
                           >
                             <Trash2 className="w-3 h-3" />
                           </button>
@@ -835,10 +1067,16 @@ export default function App() {
           </div>
 
           {/* New Officials Management Section */}
-          <div className="pt-6 border-t border-slate-100">
+          <div className={cn(
+            "pt-6 border-t transition-colors",
+            darkMode ? "border-slate-800" : "border-slate-100"
+          )}>
             <div className="flex flex-col md:flex-row gap-6 items-start">
               <div className="w-full md:w-1/3 space-y-2">
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Tambah Nama Pembawa Acara</label>
+                <label className={cn(
+                  "text-[11px] font-bold uppercase tracking-wider ml-1",
+                  darkMode ? "text-slate-500" : "text-slate-400"
+                )}>Tambah Nama Pembawa Acara</label>
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -846,11 +1084,19 @@ export default function App() {
                     value={newOfficial}
                     onChange={(e) => setNewOfficial(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleAddOfficial()}
-                    className="flex-1 bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-indigo-500 outline-none"
+                    className={cn(
+                      "flex-1 border rounded-xl px-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-indigo-500 outline-none transition-all",
+                      darkMode 
+                        ? "bg-slate-950 border-slate-800 text-slate-200" 
+                        : "bg-white border-slate-100 text-slate-700 shadow-sm"
+                    )}
                   />
                   <button
                     onClick={handleAddOfficial}
-                    className="p-3 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 transition-all"
+                    className={cn(
+                      "p-3 rounded-xl transition-all",
+                      darkMode ? "bg-indigo-900/20 text-indigo-400 hover:bg-indigo-900/30" : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100 shadow-sm"
+                    )}
                   >
                     <Plus className="w-5 h-5" />
                   </button>
@@ -858,10 +1104,16 @@ export default function App() {
               </div>
               <div className="flex-1 space-y-2">
                 <div className="flex justify-between items-end">
-                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Daftar Pilihan Pembawa Acara</label>
+                  <label className={cn(
+                    "text-[11px] font-bold uppercase tracking-wider ml-1",
+                    darkMode ? "text-slate-500" : "text-slate-400"
+                  )}>Daftar Pilihan Pembawa Acara</label>
                   <button
                     onClick={handleAutoFillOfficials}
-                    className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-lg transition-all"
+                    className={cn(
+                      "flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all px-3 py-1.5 rounded-lg",
+                      darkMode ? "text-indigo-400 hover:text-indigo-300 bg-indigo-900/20" : "text-indigo-600 hover:text-indigo-700 bg-indigo-50"
+                    )}
                   >
                     <Zap className="w-3 h-3 fill-current" />
                     Otomatisasi Nama Pembawa Acara
@@ -869,24 +1121,38 @@ export default function App() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {officialsList.length === 0 ? (
-                    <span className="text-xs text-slate-300 italic">Belum ada nama pembawa acara yang ditambahkan.</span>
+                    <span className={cn(
+                      "text-xs italic",
+                      darkMode ? "text-slate-700" : "text-slate-300"
+                    )}>Belum ada nama pembawa acara yang ditambahkan.</span>
                   ) : (
                     officialsList.map((name) => {
                       const count = getDutyCount(name, 'officials');
                       return (
                         <div 
                           key={name}
-                          className="bg-white border border-slate-200 px-3 py-1.5 rounded-full flex items-center gap-2 text-xs font-bold text-slate-600 group hover:border-indigo-200 transition-all"
+                          className={cn(
+                            "border px-3 py-1.5 rounded-full flex items-center gap-2 text-xs font-bold transition-all group",
+                            darkMode 
+                              ? "bg-slate-950 border-slate-800 text-slate-300 hover:border-indigo-900" 
+                              : "bg-white border-slate-200 text-slate-600 hover:border-indigo-200"
+                          )}
                         >
                           {name}
                           {count > 0 && (
-                            <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-md">
+                            <span className={cn(
+                              "text-[10px] px-1.5 py-0.5 rounded-md",
+                              darkMode ? "bg-slate-800 text-slate-400" : "bg-indigo-50 text-indigo-600"
+                            )}>
                               {count}x
                             </span>
                           )}
                           <button 
                             onClick={() => handleDeleteOfficial(name)}
-                            className="text-slate-300 hover:text-red-500 transition-colors"
+                            className={cn(
+                              "transition-colors",
+                              darkMode ? "text-slate-600 hover:text-red-500" : "text-slate-400 hover:text-red-500"
+                            )}
                           >
                             <Trash2 className="w-3 h-3" />
                           </button>
@@ -909,10 +1175,18 @@ export default function App() {
               placeholder="Cari dalam tabel..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-white border border-slate-200 rounded-xl py-3 pl-11 pr-4 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-sm outline-none"
+              className={cn(
+                "w-full border rounded-xl py-3 pl-11 pr-4 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none",
+                darkMode 
+                  ? "bg-slate-900 border-slate-800 text-slate-100 shadow-none" 
+                  : "bg-white border-slate-200 text-slate-900 shadow-sm shadow-indigo-100/30"
+              )}
             />
           </div>
-          <div className="flex gap-8 text-slate-400">
+          <div className={cn(
+            "flex gap-8 transition-colors",
+            darkMode ? "text-slate-500" : "text-slate-400"
+          )}>
             <div className="flex flex-col items-end">
               <span className="text-[10px] font-bold uppercase tracking-widest">
                 {items.length > 0 
@@ -920,7 +1194,10 @@ export default function App() {
                   : "Jumlah Ibadah"
                 }
               </span>
-              <span className="text-xl font-black text-slate-900 tabular-nums">{items.length} Kali Sesi Ibadah Lingkungan</span>
+              <span className={cn(
+                "text-xl font-black tabular-nums transition-colors",
+                darkMode ? "text-slate-100" : "text-slate-900"
+              )}>{items.length} Kali Sesi Ibadah Lingkungan</span>
             </div>
           </div>
         </div>
@@ -930,65 +1207,176 @@ export default function App() {
           <motion.section 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm print:hidden"
+            className={cn(
+              "border rounded-2xl p-6 print:hidden transition-colors",
+              darkMode ? "bg-slate-900 border-slate-800 shadow-none" : "bg-white border-slate-200 shadow-sm shadow-indigo-100/30"
+            )}
           >
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center">
+              <div className={cn(
+                "w-8 h-8 rounded-lg flex items-center justify-center",
+                darkMode ? "bg-indigo-900/20 text-indigo-400" : "bg-indigo-50 text-indigo-600"
+              )}>
                 <Zap className="w-4 h-4 fill-current" />
               </div>
               <div>
-                <h3 className="font-bold text-slate-800 text-sm">Ringkasan Statistik Penugasan</h3>
-                <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Total Partisipasi Semua Peran</p>
+                <h3 className={cn(
+                  "font-bold text-sm",
+                  darkMode ? "text-slate-100" : "text-slate-800"
+                )}>Ringkasan Statistik Penugasan</h3>
+                <p className={cn(
+                  "text-[10px] uppercase tracking-widest font-bold",
+                  darkMode ? "text-slate-500" : "text-slate-400"
+                )}>Total Partisipasi Semua Peran</p>
               </div>
             </div>
             
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {allStats.map(([name, data]) => (
-                <div key={name} className="bg-slate-50 border border-slate-100 p-3 rounded-xl hover:border-indigo-200 transition-all group">
-                  <div className="text-xs font-black text-slate-800 mb-2 truncate group-hover:text-indigo-600" title={name}>{name}</div>
+                <div key={name} className={cn(
+                  "border p-3 rounded-xl hover:border-indigo-200 transition-all group font-black uppercase tracking-widest text-[10px]",
+                  darkMode ? "bg-slate-950 border-slate-800" : "bg-white border-slate-100 shadow-sm"
+                )}>
+                  <div className={cn(
+                    "text-xs font-black mb-2 truncate group-hover:text-indigo-600 transition-colors",
+                    darkMode ? "text-slate-200" : "text-slate-800"
+                  )} title={name}>{name}</div>
                   <div className="flex flex-wrap gap-1.5">
-                    {data.sermon > 0 && <span className="text-[9px] bg-white border border-slate-200 px-1.5 py-0.5 rounded text-slate-500">K: {data.sermon}</span>}
-                    {data.agenda > 0 && <span className="text-[9px] bg-white border border-slate-200 px-1.5 py-0.5 rounded text-slate-500">P: {data.agenda}</span>}
-                    {data.officials > 0 && <span className="text-[9px] bg-white border border-slate-200 px-1.5 py-0.5 rounded text-slate-500">A: {data.officials}</span>}
+                    {data.sermon > 0 && <span className={cn(
+                      "text-[9px] border px-1.5 py-0.5 rounded",
+                      darkMode ? "bg-slate-900 border-slate-800 text-slate-500" : "bg-slate-50 border-slate-100 text-slate-400"
+                    )}>K: {data.sermon}</span>}
+                    {data.agenda > 0 && <span className={cn(
+                      "text-[9px] border px-1.5 py-0.5 rounded",
+                      darkMode ? "bg-slate-900 border-slate-800 text-slate-500" : "bg-slate-50 border-slate-100 text-slate-400"
+                    )}>P: {data.agenda}</span>}
+                    {data.officials > 0 && <span className={cn(
+                      "text-[9px] border px-1.5 py-0.5 rounded",
+                      darkMode ? "bg-slate-900 border-slate-800 text-slate-500" : "bg-slate-50 border-slate-100 text-slate-400"
+                    )}>A: {data.officials}</span>}
                   </div>
-                  <div className="mt-2 pt-2 border-t border-slate-200/50 flex justify-between items-center">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Total</span>
-                    <span className="text-xs font-black text-indigo-600">{data.total}x</span>
+                  <div className={cn(
+                    "mt-2 pt-2 border-t flex justify-between items-center text-[9px] font-bold uppercase tracking-[0.2em] transition-colors",
+                    darkMode ? "border-slate-800 text-slate-600" : "border-slate-100 text-slate-400"
+                  )}>
+                    <span>Total</span>
+                    <span className="text-xs font-black text-indigo-600 dark:text-indigo-400">{data.total}x</span>
                   </div>
                 </div>
               ))}
+            </div>
+
+            {/* Abbreviation Legend */}
+            <div className={cn(
+              "mt-6 pt-4 border-t flex flex-wrap gap-6 transition-colors",
+              darkMode ? "border-slate-800" : "border-slate-100"
+            )}>
+              <div className="flex items-center gap-2">
+                <span className={cn(
+                  "text-[9px] font-black px-1.5 py-0.5 rounded border transition-colors",
+                  darkMode 
+                    ? "bg-slate-800 text-slate-400 border-slate-700" 
+                    : "bg-slate-100 text-slate-500 border-slate-200"
+                )}>K</span>
+                <span className={cn(
+                  "text-[10px] font-bold uppercase tracking-wider transition-colors",
+                  darkMode ? "text-slate-500" : "text-slate-400"
+                )}>Pengkhotbah</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={cn(
+                  "text-[9px] font-black px-1.5 py-0.5 rounded border transition-colors",
+                  darkMode 
+                    ? "bg-slate-800 text-slate-400 border-slate-700" 
+                    : "bg-slate-100 text-slate-500 border-slate-200"
+                )}>P</span>
+                <span className={cn(
+                  "text-[10px] font-bold uppercase tracking-wider transition-colors",
+                  darkMode ? "text-slate-500" : "text-slate-400"
+                )}>Paragenda</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={cn(
+                  "text-[9px] font-black px-1.5 py-0.5 rounded border transition-colors",
+                  darkMode 
+                    ? "bg-slate-800 text-slate-400 border-slate-700" 
+                    : "bg-slate-100 text-slate-500 border-slate-200"
+                )}>A</span>
+                <span className={cn(
+                  "text-[10px] font-bold uppercase tracking-wider transition-colors",
+                  darkMode ? "text-slate-500" : "text-slate-400"
+                )}>Pembawa Acara</span>
+              </div>
             </div>
           </motion.section>
         )}
 
         {/* Dynamic Table Container */}
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden print:shadow-none print:border-slate-300">
+        <div className={cn(
+          "border rounded-2xl shadow-xl overflow-hidden print:shadow-none print:border-slate-300 transition-colors",
+          darkMode ? "bg-slate-900 border-slate-800 shadow-none" : "bg-white border-slate-200 shadow-indigo-100/30"
+        )}>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[1200px]">
               <thead>
-                <tr className="bg-slate-800 text-white text-[10px] uppercase tracking-[0.15em] font-black">
-                  <th className="py-4 px-6 border-r border-slate-700 w-16 text-center">No</th>
-                  <th className="py-4 px-6 border-r border-slate-700 w-48">Hari / Tanggal</th>
-                  <th className="py-4 px-6 border-r border-slate-700 w-56">Tuan Rumah</th>
-                  <th className="py-4 px-6 border-r border-slate-700 w-64">Alamat</th>
-                  <th className="py-4 px-6 border-r border-slate-700">Pengkhotbah</th>
-                  <th className="py-4 px-6 border-r border-slate-700">Paragenda</th>
-                  <th className="py-4 px-6 border-r border-slate-700">Pembawa Acara</th>
-                  <th className="py-4 px-6 border-r border-slate-700">Keterangan</th>
+                <tr className={cn(
+                  "text-[10px] uppercase tracking-[0.15em] font-black transition-colors",
+                  darkMode 
+                    ? "bg-slate-950 text-slate-200 shadow-sm" 
+                    : "bg-slate-50 text-slate-600 border-b border-slate-200"
+                )}>
+                  <th className={cn(
+                    "py-4 px-6 border-r w-16 text-center transition-colors",
+                    darkMode ? "border-slate-800" : "border-slate-100"
+                  )}>No</th>
+                  <th className={cn(
+                    "py-4 px-6 border-r w-48 transition-colors",
+                    darkMode ? "border-slate-800" : "border-slate-100"
+                  )}>Hari / Tanggal</th>
+                  <th className={cn(
+                    "py-4 px-6 border-r w-56 transition-colors",
+                    darkMode ? "border-slate-800" : "border-slate-100"
+                  )}>Tuan Rumah</th>
+                  <th className={cn(
+                    "py-4 px-6 border-r w-64 transition-colors",
+                    darkMode ? "border-slate-800" : "border-slate-100"
+                  )}>Alamat</th>
+                  <th className={cn(
+                    "py-4 px-6 border-r transition-colors",
+                    darkMode ? "border-slate-800" : "border-slate-100"
+                  )}>Pengkhotbah</th>
+                  <th className={cn(
+                    "py-4 px-6 border-r transition-colors",
+                    darkMode ? "border-slate-800" : "border-slate-100"
+                  )}>Paragenda</th>
+                  <th className={cn(
+                    "py-4 px-6 border-r transition-colors",
+                    darkMode ? "border-slate-800" : "border-slate-100"
+                  )}>Pembawa Acara</th>
+                  <th className={cn(
+                    "py-4 px-6 border-r transition-colors",
+                    darkMode ? "border-slate-800" : "border-slate-100"
+                  )}>Keterangan</th>
                   <th className="py-4 px-6 w-16 text-center print:hidden">X</th>
                 </tr>
               </thead>
-              <tbody className="text-[13px] font-medium text-slate-600">
+              <tbody className={cn(
+                "text-[13px] font-medium transition-colors",
+                darkMode ? "text-slate-400" : "text-slate-600"
+              )}>
                 <AnimatePresence mode="popLayout">
                   {filteredItems.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="py-32 text-center text-slate-300">
+                      <td colSpan={9} className="py-32 text-center">
                         <div className="flex flex-col items-center gap-4">
-                          <div className="w-20 h-20 rounded-full bg-slate-50 flex items-center justify-center">
-                            <Plus className="w-8 h-8" />
+                          <div className={cn(
+                            "w-20 h-20 rounded-full flex items-center justify-center transition-colors",
+                            darkMode ? "bg-slate-950" : "bg-slate-50"
+                          )}>
+                            <Plus className={cn("w-8 h-8 transition-colors", darkMode ? "text-slate-800" : "text-slate-200")} />
                           </div>
                           <div className="max-w-xs mx-auto">
-                            <h3 className="text-slate-900 font-bold text-lg mb-1">Belum Ada Jadwal</h3>
+                            <h3 className={cn("font-bold text-lg mb-1 transition-colors", darkMode ? "text-slate-100" : "text-slate-900")}>Belum Ada Jadwal</h3>
                             <p className="text-sm">Gunakan generator di atas untuk membuat kerangka jadwal Anda.</p>
                           </div>
                         </div>
@@ -1002,44 +1390,74 @@ export default function App() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         className={cn(
-                          "group border-b border-slate-100 transition-colors",
-                          index % 2 === 1 ? "bg-slate-50/30" : "bg-white",
-                          "hover:bg-indigo-50/20"
+                          "group border-b transition-colors",
+                          darkMode ? "border-slate-800" : "border-slate-100",
+                          index % 2 === 1 
+                            ? (darkMode ? "bg-slate-950/40" : "bg-slate-50") 
+                            : (darkMode ? "bg-transparent" : "bg-white"),
+                          darkMode ? "hover:bg-slate-800/30" : "hover:bg-indigo-50/30"
                         )}
                       >
-                        <td className="py-2 px-3 text-center border-r border-slate-100 font-mono text-[11px] text-slate-400">
+                        <td className={cn(
+                          "py-3 px-3 text-center border-r font-mono text-[11px] transition-colors",
+                          darkMode ? "border-slate-800 text-slate-700" : "border-slate-100 text-slate-400"
+                        )}>
                           {index + 1}
                         </td>
-                        <td className="py-2 px-4 border-r border-slate-100 font-bold text-slate-900">
+                        <td className={cn(
+                          "py-3 px-4 border-r font-bold transition-colors",
+                          darkMode ? "border-slate-800 text-slate-200" : "border-slate-100 text-slate-800"
+                        )}>
                           {item.dayDate}
                         </td>
-                        <td className="py-0 px-0 border-r border-slate-100 h-full">
+                        <td className={cn(
+                          "py-0 px-0 border-r h-full transition-colors",
+                          darkMode ? "border-slate-800" : "border-slate-100"
+                        )}>
                           <input
                             placeholder="Keluarga Bp. ..."
                             value={item.host}
                             onChange={(e) => handleUpdateItem(item.id, 'host', e.target.value)}
-                            className="w-full h-full p-4 bg-transparent border-none focus:ring-2 focus:ring-inset focus:ring-indigo-500/20 outline-none placeholder:text-slate-200 transition-all"
+                            className={cn(
+                              "w-full h-full p-4 bg-transparent border-none focus:ring-2 focus:ring-inset focus:ring-indigo-500/20 outline-none transition-all",
+                              darkMode ? "text-slate-300 placeholder:text-slate-800" : "text-slate-700 placeholder:text-slate-200"
+                            )}
                           />
                         </td>
-                        <td className="py-0 px-0 border-r border-slate-100 h-full">
+                        <td className={cn(
+                          "py-0 px-0 border-r h-full transition-colors",
+                          darkMode ? "border-slate-800" : "border-slate-100"
+                        )}>
                           <textarea
                             placeholder="Alamat lengkap..."
                             value={item.address}
                             onChange={(e) => handleUpdateItem(item.id, 'address', e.target.value)}
                             rows={1}
-                            className="w-full h-full p-4 bg-transparent border-none focus:ring-2 focus:ring-inset focus:ring-indigo-500/20 outline-none placeholder:text-slate-200 transition-all resize-none min-h-[52px]"
+                            className={cn(
+                              "w-full h-full p-4 bg-transparent border-none focus:ring-2 focus:ring-inset focus:ring-indigo-500/20 outline-none transition-all resize-none min-h-[52px]",
+                              darkMode ? "text-slate-300 placeholder:text-slate-800" : "text-slate-700 placeholder:text-slate-200"
+                            )}
                           />
                         </td>
-                        <td className="py-0 px-0 border-r border-slate-100 h-full">
+                        <td className={cn(
+                          "py-0 px-0 border-r h-full transition-colors",
+                          darkMode ? "border-slate-800" : "border-slate-100"
+                        )}>
                           <input
                             placeholder="Pengkhotbah..."
                             list="minister-list"
                             value={item.sermon}
                             onChange={(e) => handleUpdateItem(item.id, 'sermon', e.target.value)}
-                            className="w-full h-full p-4 bg-transparent border-none focus:ring-2 focus:ring-inset focus:ring-indigo-500/20 outline-none placeholder:text-slate-200 transition-all font-serif italic"
+                            className={cn(
+                              "w-full h-full p-4 bg-transparent border-none focus:ring-2 focus:ring-inset focus:ring-indigo-500/20 outline-none transition-all font-bold italic",
+                              darkMode ? "text-slate-300 placeholder:text-slate-800" : "text-slate-700 placeholder:text-slate-200"
+                            )}
                           />
                         </td>
-                        <td className="py-0 px-0 border-r border-slate-100 h-full">
+                        <td className={cn(
+                          "py-0 px-0 border-r h-full transition-colors",
+                          darkMode ? "border-slate-800" : "border-slate-100"
+                        )}>
                           <input
                             placeholder="Pelayan Paragenda..."
                             list="agenda-list"
@@ -1051,10 +1469,16 @@ export default function App() {
                               }
                               handleUpdateItem(item.id, 'agenda', val);
                             }}
-                            className="w-full h-full p-4 bg-transparent border-none focus:ring-2 focus:ring-inset focus:ring-indigo-500/20 outline-none placeholder:text-slate-200 transition-all"
+                            className={cn(
+                              "w-full h-full p-4 bg-transparent border-none focus:ring-2 focus:ring-inset focus:ring-indigo-500/20 outline-none transition-all font-bold italic",
+                              darkMode ? "text-slate-300 placeholder:text-slate-800" : "text-slate-700 placeholder:text-slate-200"
+                            )}
                           />
                         </td>
-                        <td className="py-0 px-0 border-r border-slate-100 h-full">
+                        <td className={cn(
+                          "py-0 px-0 border-r h-full transition-colors",
+                          darkMode ? "border-slate-800" : "border-slate-100"
+                        )}>
                           <input
                             placeholder="Pembawa Acara..."
                             list="official-list"
@@ -1066,21 +1490,33 @@ export default function App() {
                               }
                               handleUpdateItem(item.id, 'officials', val);
                             }}
-                            className="w-full h-full p-4 bg-transparent border-none focus:ring-2 focus:ring-inset focus:ring-indigo-500/20 outline-none placeholder:text-slate-200 transition-all"
+                            className={cn(
+                              "w-full h-full p-4 bg-transparent border-none focus:ring-2 focus:ring-inset focus:ring-indigo-500/20 outline-none transition-all font-bold italic",
+                              darkMode ? "text-slate-300 placeholder:text-slate-800" : "text-slate-700 placeholder:text-slate-200"
+                            )}
                           />
                         </td>
-                        <td className="py-0 px-0 h-full">
+                        <td className={cn(
+                          "py-0 px-0 border-r h-full transition-colors",
+                          darkMode ? "border-slate-800" : "border-slate-100"
+                        )}>
                           <input
                             placeholder="..."
                             value={item.notes}
                             onChange={(e) => handleUpdateItem(item.id, 'notes', e.target.value)}
-                            className="w-full h-full p-4 bg-transparent border-none focus:ring-2 focus:ring-inset focus:ring-indigo-500/20 outline-none placeholder:text-slate-200 transition-all"
+                            className={cn(
+                              "w-full h-full p-4 bg-transparent border-none focus:ring-2 focus:ring-inset focus:ring-indigo-500/20 outline-none transition-all",
+                              darkMode ? "text-slate-300 placeholder:text-slate-800" : "text-slate-700 placeholder:text-slate-200"
+                            )}
                           />
                         </td>
                         <td className="py-2 px-4 print:hidden text-center">
                           <button
                             onClick={() => handleDelete(item.id)}
-                            className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                            className={cn(
+                              "p-2 rounded-lg transition-all opacity-0 group-hover:opacity-100",
+                              darkMode ? "text-slate-700 hover:text-red-500 hover:bg-red-950/20" : "text-slate-300 hover:text-red-500 hover:bg-red-50"
+                            )}
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -1095,25 +1531,31 @@ export default function App() {
         </div>
 
         {/* Footer Info */}
-        <footer className="flex flex-col md:flex-row justify-between items-center text-slate-400 text-[11px] font-bold uppercase tracking-wider py-10 opacity-60">
+        <footer className={cn(
+          "flex flex-col md:flex-row justify-between items-center text-[11px] font-bold uppercase tracking-wider py-10 opacity-60 transition-colors",
+          darkMode ? "text-slate-500" : "text-slate-400"
+        )}>
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-green-500"></div>
+            <div className="flex items-center gap-1.5 text-green-500">
+              <div className="w-2 h-2 rounded-full bg-current"></div>
               Penyimpanan Lokal Aktif
             </div>
             <span>•</span>
             <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 bg-slate-800 text-white rounded font-mono text-[9px] font-bold">
+              <span className={cn(
+                "px-2 py-0.5 rounded font-mono text-[9px] font-bold transition-colors",
+                darkMode ? "bg-slate-700 text-white" : "bg-slate-800 text-white"
+              )}>
                 v1.0.{version}
               </span>
               <div className="transition-all duration-300 flex items-center gap-2">
                 {isSaving ? (
-                  <div className="flex items-center gap-1.5 text-indigo-500">
-                    <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-ping" />
+                   <div className="flex items-center gap-1.5 text-indigo-500 dark:text-indigo-400">
+                    <div className="w-1.5 h-1.5 bg-indigo-500 dark:bg-indigo-400 rounded-full animate-ping" />
                     <span>Sinkronisasi...</span>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-1.5 text-slate-500">
+                  <div className="flex items-center gap-1.5">
                     <CheckCircle2 className="w-3 h-3 text-green-500" />
                     <span>Terakhir Diperbarui: {new Date(lastUpdated).toLocaleDateString('id-ID')} {new Date(lastUpdated).toLocaleTimeString('id-ID')}</span>
                   </div>
