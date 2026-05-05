@@ -435,6 +435,41 @@ export default function App() {
     )
   );
 
+  const getDutyCount = (name: string, field: keyof ScheduleItem) => {
+    return items.filter(item => item[field] === name).length;
+  };
+
+  const getAllStats = () => {
+    const stats: Record<string, { sermon: number; agenda: number; officials: number; total: number }> = {};
+    
+    // Count from actual items
+    items.forEach(item => {
+      if (item.sermon && item.sermon.trim()) {
+        const name = item.sermon.trim();
+        if (!stats[name]) stats[name] = { sermon: 0, agenda: 0, officials: 0, total: 0 };
+        stats[name].sermon++;
+        stats[name].total++;
+      }
+      if (item.agenda && item.agenda.trim()) {
+        const name = item.agenda.trim();
+        if (!stats[name]) stats[name] = { sermon: 0, agenda: 0, officials: 0, total: 0 };
+        stats[name].agenda++;
+        stats[name].total++;
+      }
+      if (item.officials && item.officials.trim()) {
+        const name = item.officials.trim();
+        if (!stats[name]) stats[name] = { sermon: 0, agenda: 0, officials: 0, total: 0 };
+        stats[name].officials++;
+        stats[name].total++;
+      }
+    });
+
+    return Object.entries(stats)
+      .sort((a, b) => b[1].total - a[1].total);
+  };
+
+  const allStats = getAllStats();
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-indigo-100">
       {/* Notification */}
@@ -706,20 +741,28 @@ export default function App() {
                   {ministers.length === 0 ? (
                     <span className="text-xs text-slate-300 italic">Belum ada nama pelayan yang ditambahkan.</span>
                   ) : (
-                    ministers.map((name) => (
-                      <div 
-                        key={name}
-                        className="bg-white border border-slate-200 px-3 py-1.5 rounded-full flex items-center gap-2 text-xs font-bold text-slate-600 group hover:border-indigo-200 transition-all"
-                      >
-                        {name}
-                        <button 
-                          onClick={() => handleDeleteMinister(name)}
-                          className="text-slate-300 hover:text-red-500 transition-colors"
+                    ministers.map((name) => {
+                      const count = getDutyCount(name, 'sermon');
+                      return (
+                        <div 
+                          key={name}
+                          className="bg-white border border-slate-200 px-3 py-1.5 rounded-full flex items-center gap-2 text-xs font-bold text-slate-600 group hover:border-indigo-200 transition-all"
                         >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))
+                          {name}
+                          {count > 0 && (
+                            <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-md">
+                              {count}x
+                            </span>
+                          )}
+                          <button 
+                            onClick={() => handleDeleteMinister(name)}
+                            className="text-slate-300 hover:text-red-500 transition-colors"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      );
+                    })
                   )}
                 </div>
               </div>
@@ -763,20 +806,28 @@ export default function App() {
                   {agendas.length === 0 ? (
                     <span className="text-xs text-slate-300 italic">Belum ada nama pelayan paragenda yang ditambahkan.</span>
                   ) : (
-                    agendas.map((name) => (
-                      <div 
-                        key={name}
-                        className="bg-white border border-slate-200 px-3 py-1.5 rounded-full flex items-center gap-2 text-xs font-bold text-slate-600 group hover:border-indigo-200 transition-all"
-                      >
-                        {name}
-                        <button 
-                          onClick={() => handleDeleteAgenda(name)}
-                          className="text-slate-300 hover:text-red-500 transition-colors"
+                    agendas.map((name) => {
+                      const count = getDutyCount(name, 'agenda');
+                      return (
+                        <div 
+                          key={name}
+                          className="bg-white border border-slate-200 px-3 py-1.5 rounded-full flex items-center gap-2 text-xs font-bold text-slate-600 group hover:border-indigo-200 transition-all"
                         >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))
+                          {name}
+                          {count > 0 && (
+                            <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-md">
+                              {count}x
+                            </span>
+                          )}
+                          <button 
+                            onClick={() => handleDeleteAgenda(name)}
+                            className="text-slate-300 hover:text-red-500 transition-colors"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      );
+                    })
                   )}
                 </div>
               </div>
@@ -820,20 +871,28 @@ export default function App() {
                   {officialsList.length === 0 ? (
                     <span className="text-xs text-slate-300 italic">Belum ada nama pembawa acara yang ditambahkan.</span>
                   ) : (
-                    officialsList.map((name) => (
-                      <div 
-                        key={name}
-                        className="bg-white border border-slate-200 px-3 py-1.5 rounded-full flex items-center gap-2 text-xs font-bold text-slate-600 group hover:border-indigo-200 transition-all"
-                      >
-                        {name}
-                        <button 
-                          onClick={() => handleDeleteOfficial(name)}
-                          className="text-slate-300 hover:text-red-500 transition-colors"
+                    officialsList.map((name) => {
+                      const count = getDutyCount(name, 'officials');
+                      return (
+                        <div 
+                          key={name}
+                          className="bg-white border border-slate-200 px-3 py-1.5 rounded-full flex items-center gap-2 text-xs font-bold text-slate-600 group hover:border-indigo-200 transition-all"
                         >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))
+                          {name}
+                          {count > 0 && (
+                            <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-md">
+                              {count}x
+                            </span>
+                          )}
+                          <button 
+                            onClick={() => handleDeleteOfficial(name)}
+                            className="text-slate-300 hover:text-red-500 transition-colors"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      );
+                    })
                   )}
                 </div>
               </div>
@@ -865,6 +924,42 @@ export default function App() {
             </div>
           </div>
         </div>
+
+        {/* Total Assignment Statistics Summary */}
+        {allStats.length > 0 && (
+          <motion.section 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm print:hidden"
+          >
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center">
+                <Zap className="w-4 h-4 fill-current" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-800 text-sm">Ringkasan Statistik Penugasan</h3>
+                <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Total Partisipasi Semua Peran</p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {allStats.map(([name, data]) => (
+                <div key={name} className="bg-slate-50 border border-slate-100 p-3 rounded-xl hover:border-indigo-200 transition-all group">
+                  <div className="text-xs font-black text-slate-800 mb-2 truncate group-hover:text-indigo-600" title={name}>{name}</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {data.sermon > 0 && <span className="text-[9px] bg-white border border-slate-200 px-1.5 py-0.5 rounded text-slate-500">K: {data.sermon}</span>}
+                    {data.agenda > 0 && <span className="text-[9px] bg-white border border-slate-200 px-1.5 py-0.5 rounded text-slate-500">P: {data.agenda}</span>}
+                    {data.officials > 0 && <span className="text-[9px] bg-white border border-slate-200 px-1.5 py-0.5 rounded text-slate-500">A: {data.officials}</span>}
+                  </div>
+                  <div className="mt-2 pt-2 border-t border-slate-200/50 flex justify-between items-center">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Total</span>
+                    <span className="text-xs font-black text-indigo-600">{data.total}x</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.section>
+        )}
 
         {/* Dynamic Table Container */}
         <div className="bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden print:shadow-none print:border-slate-300">
