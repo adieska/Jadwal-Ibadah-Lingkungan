@@ -445,7 +445,27 @@ export default function App() {
     notify('Berhasil mengekspor ke Excel');
   };
 
-  const handlePrint = () => window.print();
+  const handlePrint = () => {
+    // Standard focus for better support
+    window.focus();
+    
+    // Inform user about iframe limitations if print doesn't trigger
+    const printTimer = setTimeout(() => {
+      notify('Tips: Jika dialog cetak tidak muncul, klik tombol "Buka di Tab Baru" di pojok kanan atas layar.', 'success');
+    }, 2000);
+
+    try {
+      // In many iframe environments, direct window.print() is blocked or ignored.
+      // We trigger it and rely on the timeout above to guide the user if it fails.
+      window.print();
+      // If print was successful (or at least dialog opened), clear the instructional timer
+      // though we can't reliably detect if print dialog closed/opened.
+    } catch (err) {
+      console.error('Print failed:', err);
+      notify('Fitur cetak terhalang browser. Silakan buka aplikasi di TAB BARU.', 'error');
+      clearTimeout(printTimer);
+    }
+  };
 
   const filteredItems = items.filter(item => 
     Object.values(item).some(val => 
@@ -561,7 +581,7 @@ export default function App() {
               <button
                 onClick={handlePrint}
                 className={cn(
-                  "px-4 py-2.5 border rounded-lg text-sm font-semibold transition-all flex items-center gap-2",
+                  "px-4 py-2.5 border rounded-lg text-sm font-semibold transition-all flex items-center gap-2 relative group",
                   darkMode 
                     ? "bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700 hover:border-slate-600" 
                     : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"
@@ -569,6 +589,9 @@ export default function App() {
               >
                 <Printer className="w-4 h-4" />
                 Cetak PDF
+                
+                {/* Information Badge for iFrame users */}
+                <div className="absolute -top-1 -right-1 w-2 h-2 bg-indigo-500 rounded-full animate-pulse md:hidden" />
               </button>
               <button
                 onClick={exportToExcel}
@@ -684,7 +707,7 @@ export default function App() {
 
             {/* Generator Controls - The New Core Feature */}
           <section className={cn(
-            "border rounded-2xl p-6 space-y-8 transition-colors",
+            "border rounded-2xl p-6 space-y-8 transition-colors print:hidden",
             darkMode ? "bg-slate-900 border-slate-800 shadow-none" : "bg-white border-slate-200 shadow-sm shadow-indigo-100/30"
           )}>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
@@ -1174,8 +1197,8 @@ export default function App() {
         </section>
 
         {/* Search & Statistics Bar */}
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-6">
-          <div className="relative w-full sm:max-w-md">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-6 print:hidden">
+          <div className="relative w-full sm:max-w-md print:hidden">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
@@ -1649,7 +1672,7 @@ export default function App() {
         @media print {
           @page { size: landscape; margin: 1cm; }
           body { background: white; -webkit-print-color-adjust: exact; }
-          header, section, .sm\\:max-w-md, .print\\:hidden, #bulk-import-modal { display: none !important; }
+          header, .print\\:hidden, #bulk-import-modal { display: none !important; }
           footer { border-top: 1px solid #e2e8f0; margin-top: 20px; opacity: 1 !important; visibility: visible !important; display: flex !important; }
           main { max-width: none; width: 100%; padding: 0 !important; margin: 0 !important; }
           .bg-white { border: none !important; box-shadow: none !important; }
