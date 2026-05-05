@@ -50,6 +50,50 @@ Aplikasi manajemen jadwal ibadah lingkungan yang dirancang untuk membantu pengur
 5.  **Finalisasi**: Edit secara manual jika diperlukan (input tabel bersifat interaktif).
 6.  **Bagikan**: Klik **Cetak Jadwal** atau **Ekspor Excel**.
 
+## ⚠️ Catatan Penting Mengenai Data
+
+Perlu diingat bahwa aplikasi ini saat ini menyimpan data di **LocalStorage Browser**. Artinya:
+*   Data Draft Jadwal dan Daftar Tuan Rumah tersimpan di perangkat/browser masing-masing pengguna.
+*   Jika Anda membersihkan Cache/Cookie browser atau menggunakan mode Incognito, data akan hilang.
+*   **Rekomendasi**: Selalu ekspor ke Excel jika jadwal sudah final untuk cadangan fisik.
+*   *Catatan Masa Depan*: Jika Anda membutuhkan data yang tersimpan secara permanen di cloud dan bisa diakses bersama oleh beberapa orang (sinkron), aplikasi ini perlu dikoneksikan ke database seperti **Firebase (Google)**.
+
+## 🚀 Panduan Instalasi & Deployment
+
+Karena ini adalah aplikasi berbasis **React (Vite)**, Anda bisa memasangnya di berbagai layanan hosting statis secara gratis atau berbayar.
+
+### 1. Persiapan Lokal (Jika ingin build sendiri)
+1. Pastikan Anda memiliki [Node.js](https://nodejs.org/) terpasang.
+2. Clone/Unduh source code aplikasi ini.
+3. Buka terminal di folder project dan jalankan:
+   ```bash
+   npm install
+   ```
+4. Untuk membangun file produksi, jalankan:
+   ```bash
+   npm run build
+   ```
+5. Hasilnya akan ada di folder `/dist`. Folder inilah yang diunggah ke hosting.
+
+### 2. Pilihan Hosting
+
+#### A. Netlify / Vercel (Sangat Direkomendasikan)
+1. Hubungkan repository GitHub Anda ke layanan ini.
+2. Gunakan pengaturan berikut:
+   *   **Build Command**: `npm run build`
+   *   **Publish Directory**: `dist`
+3. Aplikasi akan otomatis terupdate setiap kali Anda melakukan *push* ke GitHub.
+
+#### B. Hosting Biasa (cPanel/Shared Hosting)
+1. Jalankan `npm run build` di komputer Anda.
+2. Kompres isi folder `/dist` menjadi file `.zip`.
+3. Unggah dan ekstrak file tersebut di folder `public_html` hosting Anda.
+
+#### C. GitHub Pages
+1. Pasang paket `gh-pages`: `npm install gh-pages --save-dev`.
+2. Tambahkan `"homepage": "https://username.github.io/repo-name"` di `package.json`.
+3. Jalankan `npm run deploy`.
+
 ## 📄 Lisensi
 
 Dibuat dengan ❤️ untuk kemudahan pelayanan umat. Bebas digunakan dan dikembangkan.
