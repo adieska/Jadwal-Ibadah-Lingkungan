@@ -1,0 +1,1073 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Plus, 
+  Trash2, 
+  Download, 
+  Printer, 
+  Calendar as CalendarIcon, 
+  MapPin, 
+  BookOpen, 
+  User, 
+  FileText, 
+  Home,
+  Save,
+  Eraser,
+  Search,
+  CheckCircle2,
+  AlertCircle,
+  Zap
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import * as XLSX from 'xlsx';
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+interface ScheduleItem {
+  id: string;
+  dayDate: string;
+  host: string;
+  address: string;
+  sermon: string;
+  agenda: string;
+  officials: string;
+  notes: string;
+}
+
+export default function App() {
+  const [items, setItems] = useState<ScheduleItem[]>(() => {
+    const saved = localStorage.getItem('ibadah_schedule');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [version, setVersion] = useState<number>(() => {
+    const saved = localStorage.getItem('ibadah_version');
+    return saved ? parseInt(saved, 10) : 1;
+  });
+
+  const [lastUpdated, setLastUpdated] = useState<string>(() => {
+    return localStorage.getItem('ibadah_last_updated') || new Date().toISOString();
+  });
+
+  const [isSaving, setIsSaving] = useState(false);
+
+  const [generatorSettings, setGeneratorSettings] = useState({
+    dayOfWeek: 6, // 6 = Saturday (Default)
+    startDate: '',
+    endDate: '',
+  });
+
+  const [ministers, setMinisters] = useState<string[]>(() => {
+    const saved = localStorage.getItem('ibadah_ministers');
+    return saved ? JSON.parse(saved) : ['Pastor Paroki', 'Ketua Lingkungan', 'Tim Liturgi'];
+  });
+  const [newMinister, setNewMinister] = useState('');
+
+  const [agendas, setAgendas] = useState<string[]>(() => {
+    const saved = localStorage.getItem('ibadah_agendas');
+    return saved ? JSON.parse(saved) : ['Pertemuan I', 'Pertemuan II', 'Pertemuan III'];
+  });
+  const [newAgenda, setNewAgenda] = useState('');
+
+  const [officialsList, setOfficialsList] = useState<string[]>(() => {
+    const saved = localStorage.getItem('ibadah_officials');
+    return saved ? JSON.parse(saved) : ['Petugas Liturgi', 'Petugas Musik', 'Petugas Multimedia'];
+  });
+  const [newOfficial, setNewOfficial] = useState('');
+
+  const [hostPool, setHostPool] = useState<{name: string, address: string}[]>(() => {
+    const saved = localStorage.getItem('ibadah_host_pool');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [newHost, setNewHost] = useState({ name: '', address: '' });
+  const [bulkText, setBulkText] = useState('');
+  const [showBulkModal, setShowBulkModal] = useState(false);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showNotification, setShowNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
+
+  const days = [
+    { label: 'Minggu', value: 0 },
+    { label: 'Senin', value: 1 },
+    { label: 'Selasa', value: 2 },
+    { label: 'Rabu', value: 3 },
+    { label: 'Kamis', value: 4 },
+    { label: 'Jumat', value: 5 },
+    { label: 'Sabtu', value: 6 },
+  ];
+
+  // Tracking Changes for Auto-Versioning
+  const isInitialMount = useRef(true);
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    
+    setIsSaving(true);
+    // Increment version and update timestamp on meaningful changes
+    const timer = setTimeout(() => {
+      setVersion(v => v + 1);
+      setLastUpdated(new Date().toISOString());
+      setIsSaving(false);
+    }, 1500); // Debounce to avoid excessive increments during rapid typing
+
+    return () => clearTimeout(timer);
+  }, [items, ministers, agendas, officialsList, hostPool, generatorSettings]);
+
+  useEffect(() => {
+    localStorage.setItem('ibadah_schedule', JSON.stringify(items));
+  }, [items]);
+
+  useEffect(() => {
+    localStorage.setItem('ibadah_ministers', JSON.stringify(ministers));
+  }, [ministers]);
+
+  useEffect(() => {
+    localStorage.setItem('ibadah_agendas', JSON.stringify(agendas));
+  }, [agendas]);
+
+  useEffect(() => {
+    localStorage.setItem('ibadah_officials', JSON.stringify(officialsList));
+  }, [officialsList]);
+
+  useEffect(() => {
+    localStorage.setItem('ibadah_host_pool', JSON.stringify(hostPool));
+  }, [hostPool]);
+
+  useEffect(() => {
+    localStorage.setItem('ibadah_version', version.toString());
+  }, [version]);
+
+  useEffect(() => {
+    localStorage.setItem('ibadah_last_updated', lastUpdated);
+  }, [lastUpdated]);
+
+  const notify = (message: string, type: 'success' | 'error' = 'success') => {
+    setShowNotification({ message, type });
+    setTimeout(() => setShowNotification(null), 3000);
+  };
+
+  const handleAddHost = () => {
+    if (!newHost.name.trim()) return;
+    setHostPool(prev => [...prev, { name: newHost.name.trim(), address: newHost.address.trim() }]);
+    setNewHost({ name: '', address: '' });
+    notify('Tuan rumah ditambahkan');
+  };
+
+  const handleBulkImport = () => {
+    const lines = bulkText.split('\n').filter(line => line.trim());
+    const newEntries = lines.map(line => {
+      // Split by comma or tab
+      const parts = line.split(/[,\t]/);
+      return {
+        name: parts[0]?.trim() || '',
+        address: parts[1]?.trim() || ''
+      };
+    }).filter(e => e.name);
+
+    if (newEntries.length === 0) {
+      notify('Format tidak valid', 'error');
+      return;
+    }
+
+    setHostPool(prev => [...prev, ...newEntries]);
+    setBulkText('');
+    setShowBulkModal(false);
+    notify(`Berhasil mengimpor ${newEntries.length} data`);
+  };
+
+  const handleDeleteHost = (index: number) => {
+    setHostPool(prev => prev.filter((_, i) => i !== index));
+    notify('Data dihapus');
+  };
+
+  const handleAutoFillHosts = () => {
+    if (hostPool.length === 0) {
+      notify('Tambahkan daftar tuan rumah terlebih dahulu', 'error');
+      return;
+    }
+    if (items.length === 0) {
+      notify('Belum ada baris jadwal yang dibuat', 'error');
+      return;
+    }
+
+    setItems(prev => prev.map((item, index) => {
+      const data = hostPool[index % hostPool.length];
+      return {
+        ...item,
+        host: data.name,
+        address: data.address
+      };
+    }));
+    notify('Berhasil mengisi Tuan Rumah & Alamat secara otomatis');
+  };
+
+  const handleAddMinister = () => {
+    if (!newMinister.trim()) return;
+    if (ministers.includes(newMinister.trim())) {
+      notify('Nama pelayan sudah ada', 'error');
+      return;
+    }
+    setMinisters(prev => [...prev, newMinister.trim()]);
+    setNewMinister('');
+    notify('Nama pelayan ditambahkan');
+  };
+
+  const handleDeleteMinister = (name: string) => {
+    setMinisters(prev => prev.filter(m => m !== name));
+    notify('Nama pelayan dihapus');
+  };
+
+  const handleAddAgenda = () => {
+    if (!newAgenda.trim()) return;
+    if (agendas.includes(newAgenda.trim())) {
+      notify('Agenda sudah ada', 'error');
+      return;
+    }
+    setAgendas(prev => [...prev, newAgenda.trim()]);
+    setNewAgenda('');
+    notify('Agenda ditambahkan');
+  };
+
+  const handleDeleteAgenda = (name: string) => {
+    setAgendas(prev => prev.filter(a => a !== name));
+    notify('Agenda dihapus');
+  };
+
+  const handleAddOfficial = () => {
+    if (!newOfficial.trim()) return;
+    if (officialsList.includes(newOfficial.trim())) {
+      notify('Nama petugas sudah ada', 'error');
+      return;
+    }
+    setOfficialsList(prev => [...prev, newOfficial.trim()]);
+    setNewOfficial('');
+    notify('Nama petugas ditambahkan');
+  };
+
+  const handleDeleteOfficial = (name: string) => {
+    setOfficialsList(prev => prev.filter(o => o !== name));
+    notify('Nama petugas dihapus');
+  };
+
+  const handleAutoFillMinisters = () => {
+    if (ministers.length === 0) {
+      notify('Tambahkan nama pelayan terlebih dahulu', 'error');
+      return;
+    }
+    if (items.length === 0) {
+      notify('Belum ada baris jadwal yang dibuat', 'error');
+      return;
+    }
+
+    setItems(prev => prev.map((item, index) => ({
+      ...item,
+      sermon: ministers[index % ministers.length]
+    })));
+    notify('Berhasil mengisi pelayan secara otomatis');
+  };
+
+  const handleAutoFillAgendas = () => {
+    if (agendas.length === 0) {
+      notify('Tambahkan pelayan agenda terlebih dahulu', 'error');
+      return;
+    }
+    if (items.length === 0) {
+      notify('Belum ada baris jadwal yang dibuat', 'error');
+      return;
+    }
+
+    setItems(prev => prev.map((item, index) => {
+      let agendaIndex = index % agendas.length;
+      let selectedAgenda = agendas[agendaIndex];
+
+      // Logic: If the selected agenda minister is the same as the sermon minister,
+      // pick the next person in the agendas list.
+      if (selectedAgenda === item.sermon && agendas.length > 1) {
+        agendaIndex = (agendaIndex + 1) % agendas.length;
+        selectedAgenda = agendas[agendaIndex];
+      }
+
+      return {
+        ...item,
+        agenda: selectedAgenda
+      };
+    }));
+    notify('Berhasil mengisi pelayan agenda secara otomatis (tanpa duplikasi tugas)');
+  };
+
+  const handleAutoFillOfficials = () => {
+    if (officialsList.length === 0) {
+      notify('Tambahkan petugas terlebih dahulu', 'error');
+      return;
+    }
+    if (items.length === 0) {
+      notify('Belum ada baris jadwal yang dibuat', 'error');
+      return;
+    }
+
+    setItems(prev => prev.map((item, index) => {
+      let officialIndex = index % officialsList.length;
+      let selectedOfficial = officialsList[officialIndex];
+
+      // Duplication check across sermon AND agenda
+      let attempts = 0;
+      while (
+        (selectedOfficial === item.sermon || selectedOfficial === item.agenda) && 
+        attempts < officialsList.length
+      ) {
+        officialIndex = (officialIndex + 1) % officialsList.length;
+        selectedOfficial = officialsList[officialIndex];
+        attempts++;
+      }
+
+      return {
+        ...item,
+        officials: selectedOfficial
+      };
+    }));
+    notify('Berhasil mengisi petugas secara otomatis (tanpa duplikasi tugas)');
+  };
+
+  const handleGenerate = () => {
+    const { dayOfWeek, startDate, endDate } = generatorSettings;
+    if (!startDate || !endDate) {
+      notify('Tentukan tanggal mulai dan berakhir', 'error');
+      return;
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    if (start > end) {
+      notify('Tanggal mulai tidak boleh lebih besar dari tanggal berakhir', 'error');
+      return;
+    }
+
+    const newRows: ScheduleItem[] = [];
+    const current = new Date(start);
+
+    // Find the first occurrence of the day
+    while (current.getDay() !== dayOfWeek) {
+      current.setDate(current.getDate() + 1);
+    }
+
+    while (current <= end) {
+      const options: Intl.DateTimeFormatOptions = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+      const dateString = current.toLocaleDateString('id-ID', options);
+      
+      newRows.push({
+        id: crypto.randomUUID(),
+        dayDate: dateString,
+        host: '',
+        address: '',
+        sermon: '',
+        agenda: '',
+        officials: '',
+        notes: '',
+      });
+      
+      current.setDate(current.getDate() + 7);
+    }
+
+    if (newRows.length === 0) {
+      notify('Tidak ada hari yang cocok dalam rentang tersebut', 'error');
+    } else {
+      setItems(prev => [...prev, ...newRows]);
+      notify(`Berhasil membuat ${newRows.length} baris jadwal baru`);
+    }
+  };
+
+  const handleUpdateItem = (id: string, field: keyof ScheduleItem, value: string) => {
+    setItems(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item));
+  };
+
+  const handleDelete = (id: string) => {
+    setItems(prev => prev.filter(item => item.id !== id));
+    notify('Baris dihapus');
+  };
+
+  const handleClearAll = () => {
+    if (confirm('Hapus semua jadwal?')) {
+      setItems([]);
+      notify('Semua jadwal dibersihkan');
+    }
+  };
+
+  const exportToExcel = () => {
+    if (items.length === 0) {
+      notify('Tidak ada data untuk diekspor', 'error');
+      return;
+    }
+
+    const exportData = items.map((item, index) => ({
+      'No.': index + 1,
+      'Hari/Tanggal': item.dayDate,
+      'Tuan Rumah': item.host,
+      'Alamat': item.address,
+      'Pengkhotbah': item.sermon,
+      'Paragenda': item.agenda,
+      'Pembawa Acara': item.officials,
+      'Keterangan': item.notes,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Jadwal Ibadah');
+    XLSX.writeFile(workbook, `Jadwal_Ibadah_${new Date().toISOString().split('T')[0]}.xlsx`);
+    notify('Berhasil mengekspor ke Excel');
+  };
+
+  const handlePrint = () => window.print();
+
+  const filteredItems = items.filter(item => 
+    Object.values(item).some(val => 
+      String(val).toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  );
+
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-indigo-100">
+      {/* Notification */}
+      <AnimatePresence>
+        {showNotification && (
+          <motion.div
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -50 }}
+            className={cn(
+              "fixed top-6 right-6 z-50 px-6 py-4 rounded-lg shadow-xl flex items-center gap-3 border bg-white",
+              showNotification.type === 'success' ? "border-green-100 text-green-800" : "border-red-100 text-red-800"
+            )}
+          >
+            {showNotification.type === 'success' ? <CheckCircle2 className="w-5 h-5 text-green-500" /> : <AlertCircle className="w-5 h-5 text-red-500" />}
+            <span className="font-semibold">{showNotification.message}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+        {/* Header - Professional Polish Style */}
+        <header className="bg-white border-b border-slate-200 px-8 py-4 sticky top-0 z-40">
+          <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-200">
+                <CalendarIcon className="w-6 h-6" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold tracking-tight text-slate-800 leading-none mb-1">Jadwal Ibadah Lingkungan</h1>
+                <p className="text-[10px] text-slate-400 uppercase tracking-[0.2em] font-bold">Generator Jadwal Ibadah Lingkungan/Sektor/Lungguk/Weijk</p>
+              </div>
+            </div>
+            
+            <div className="flex flex-wrap gap-2 justify-center">
+              <button
+                onClick={handlePrint}
+                className="px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center gap-2"
+              >
+                <Printer className="w-4 h-4" />
+                Cetak PDF
+              </button>
+              <button
+                onClick={exportToExcel}
+                className="px-5 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-md shadow-indigo-100 active:scale-95"
+              >
+                <Download className="w-4 h-4" />
+                Ekspor Excel
+              </button>
+              {items.length > 0 && (
+                <button
+                  onClick={handleClearAll}
+                  className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                  title="Hapus Semua"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              )}
+            </div>
+          </div>
+        </header>
+
+        {/* Modal Bulk Import */}
+        <AnimatePresence>
+          {showBulkModal && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden"
+              >
+                <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                  <h3 className="font-bold text-slate-800">Bulk Import Tuan Rumah & Alamat</h3>
+                  <button onClick={() => setShowBulkModal(false)} className="text-slate-400 hover:text-slate-600">
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="p-6 space-y-4">
+                  <p className="text-xs text-slate-500 leading-relaxed italic">
+                    Tempel data dari teks/Excel. Format per baris: <br />
+                    <code className="bg-slate-100 px-1 rounded">Nama Tuan Rumah, Alamat Lengkap</code>
+                  </p>
+                  <textarea
+                    rows={10}
+                    placeholder="Contoh:&#10;Keluarga Bp. Andreas, Jl. Mawar No. 10&#10;Ibu Maria, Jl. Melati Blok C5"
+                    className="w-full bg-slate-50 border border-slate-100 rounded-xl p-4 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                    value={bulkText}
+                    onChange={(e) => setBulkText(e.target.value)}
+                  />
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setShowBulkModal(false)}
+                      className="flex-1 py-3 border border-slate-200 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-50"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      onClick={handleBulkImport}
+                      className="flex-1 py-3 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-100"
+                    >
+                      Impor Sekarang
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        <main className="max-w-[1600px] mx-auto px-8 py-10 space-y-8">
+          {/* Print Title - Visible only when printing */}
+          <div className="hidden print:block text-center space-y-2 mb-8">
+            <h1 className="text-2xl font-bold text-slate-900">Jadwal Ibadah Lingkungan</h1>
+            <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">Laporan Jadwal Resmi</p>
+            <div className="border-b-2 border-slate-900 w-full mt-4"></div>
+          </div>
+
+          {/* Generator Controls - The New Core Feature */}
+          <section className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Pilih Hari Ibadah Lingkungan</label>
+                <select
+                  value={generatorSettings.dayOfWeek}
+                  onChange={(e) => setGeneratorSettings(prev => ({ ...prev, dayOfWeek: parseInt(e.target.value) }))}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-indigo-500 transition-all outline-none"
+                >
+                  {days.map(day => (
+                    <option key={day.value} value={day.value}>{day.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Dari Tanggal</label>
+                <input
+                  type="date"
+                  value={generatorSettings.startDate}
+                  onChange={(e) => setGeneratorSettings(prev => ({ ...prev, startDate: e.target.value }))}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-indigo-500 transition-all outline-none"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Sampai Tanggal</label>
+                <input
+                  type="date"
+                  value={generatorSettings.endDate}
+                  onChange={(e) => setGeneratorSettings(prev => ({ ...prev, endDate: e.target.value }))}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-indigo-500 transition-all outline-none"
+                />
+              </div>
+              <button
+                onClick={handleGenerate}
+                className="w-full py-3.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg"
+              >
+                <Plus className="w-5 h-5" />
+                Generate Jadwal
+              </button>
+            </div>
+
+            {/* Host & Address Management Pool */}
+            <div className="pt-6 border-t border-slate-100">
+              <div className="flex flex-col md:flex-row gap-8 items-start">
+                <div className="w-full md:w-1/3 space-y-4">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Kelola Daftar Tuan Rumah</label>
+                    <button 
+                      onClick={() => setShowBulkModal(true)}
+                      className="text-[10px] font-bold text-indigo-600 hover:underline"
+                    >
+                      Paste/Impor Data
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      placeholder="Nama Tuan Rumah"
+                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 text-sm font-semibold outline-none focus:ring-2 focus:ring-indigo-500"
+                      value={newHost.name}
+                      onChange={(e) => setNewHost(prev => ({...prev, name: e.target.value}))}
+                    />
+                    <textarea
+                      placeholder="Alamat Lengkap"
+                      rows={2}
+                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 text-sm font-semibold outline-none focus:ring-2 focus:ring-indigo-500"
+                      value={newHost.address}
+                      onChange={(e) => setNewHost(prev => ({...prev, address: e.target.value}))}
+                    />
+                    <button
+                      onClick={handleAddHost}
+                      className="w-full py-2.5 bg-indigo-50 text-indigo-600 rounded-xl text-sm font-bold hover:bg-indigo-100 transition-all"
+                    >
+                      Tambah ke Daftar
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="flex-1 space-y-4">
+                  <div className="flex justify-between items-end">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Daftar Slot Tuan Rumah ({hostPool.length})</label>
+                    <button
+                      onClick={handleAutoFillHosts}
+                      className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-lg transition-all"
+                    >
+                      <Zap className="w-3 h-3 fill-current" />
+                      Otomatisasi Tuan Rumah & Alamat
+                    </button>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                    {hostPool.length === 0 ? (
+                      <div className="col-span-full py-10 text-center border-2 border-dashed border-slate-100 rounded-2xl text-slate-300 text-sm italic">
+                        Belum ada daftar tuan rumah
+                      </div>
+                    ) : (
+                      hostPool.map((host, idx) => (
+                        <div key={idx} className="bg-white border border-slate-100 p-3 rounded-xl flex justify-between items-start group hover:border-indigo-200 transition-all shadow-sm">
+                          <div className="space-y-0.5">
+                            <div className="text-xs font-black text-slate-800">{host.name}</div>
+                            <div className="text-[10px] text-slate-400 line-clamp-1">{host.address}</div>
+                          </div>
+                          <button 
+                            onClick={() => handleDeleteHost(idx)}
+                            className="text-slate-200 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          {/* New Minister Management Section */}
+          <div className="pt-6 border-t border-slate-100">
+            <div className="flex flex-col md:flex-row gap-6 items-start">
+              <div className="w-full md:w-1/3 space-y-2">
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Tambah Nama Pengkhotbah</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Contoh: Bp. Andreas"
+                    value={newMinister}
+                    onChange={(e) => setNewMinister(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddMinister()}
+                    className="flex-1 bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-indigo-500 outline-none"
+                  />
+                  <button
+                    onClick={handleAddMinister}
+                    className="p-3 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 transition-all"
+                  >
+                    <Plus className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+              <div className="flex-1 space-y-2">
+                <div className="flex justify-between items-end">
+                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Daftar Pilihan Pelayan</label>
+                  <button
+                    onClick={handleAutoFillMinisters}
+                    className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-lg transition-all"
+                  >
+                    <Zap className="w-3 h-3 fill-current" />
+                    Otomatisasi Nama Pengkhotbah
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {ministers.length === 0 ? (
+                    <span className="text-xs text-slate-300 italic">Belum ada nama pelayan yang ditambahkan.</span>
+                  ) : (
+                    ministers.map((name) => (
+                      <div 
+                        key={name}
+                        className="bg-white border border-slate-200 px-3 py-1.5 rounded-full flex items-center gap-2 text-xs font-bold text-slate-600 group hover:border-indigo-200 transition-all"
+                      >
+                        {name}
+                        <button 
+                          onClick={() => handleDeleteMinister(name)}
+                          className="text-slate-300 hover:text-red-500 transition-colors"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* New Agenda Management Section */}
+          <div className="pt-6 border-t border-slate-100">
+            <div className="flex flex-col md:flex-row gap-6 items-start">
+              <div className="w-full md:w-1/3 space-y-2">
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Tambah Nama Paragenda</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Contoh: Ibu Maria"
+                    value={newAgenda}
+                    onChange={(e) => setNewAgenda(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddAgenda()}
+                    className="flex-1 bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-indigo-500 outline-none"
+                  />
+                  <button
+                    onClick={handleAddAgenda}
+                    className="p-3 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 transition-all"
+                  >
+                    <Plus className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+              <div className="flex-1 space-y-2">
+                <div className="flex justify-between items-end">
+                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Daftar Pilihan Pelayan Paragenda</label>
+                  <button
+                    onClick={handleAutoFillAgendas}
+                    className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-lg transition-all"
+                  >
+                    <Zap className="w-3 h-3 fill-current" />
+                    Otomatisasi Nama Paragenda
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {agendas.length === 0 ? (
+                    <span className="text-xs text-slate-300 italic">Belum ada nama pelayan paragenda yang ditambahkan.</span>
+                  ) : (
+                    agendas.map((name) => (
+                      <div 
+                        key={name}
+                        className="bg-white border border-slate-200 px-3 py-1.5 rounded-full flex items-center gap-2 text-xs font-bold text-slate-600 group hover:border-indigo-200 transition-all"
+                      >
+                        {name}
+                        <button 
+                          onClick={() => handleDeleteAgenda(name)}
+                          className="text-slate-300 hover:text-red-500 transition-colors"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* New Officials Management Section */}
+          <div className="pt-6 border-t border-slate-100">
+            <div className="flex flex-col md:flex-row gap-6 items-start">
+              <div className="w-full md:w-1/3 space-y-2">
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Tambah Nama Pembawa Acara</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Contoh: Bp. Yohanes"
+                    value={newOfficial}
+                    onChange={(e) => setNewOfficial(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddOfficial()}
+                    className="flex-1 bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-indigo-500 outline-none"
+                  />
+                  <button
+                    onClick={handleAddOfficial}
+                    className="p-3 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 transition-all"
+                  >
+                    <Plus className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+              <div className="flex-1 space-y-2">
+                <div className="flex justify-between items-end">
+                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Daftar Pilihan Pembawa Acara</label>
+                  <button
+                    onClick={handleAutoFillOfficials}
+                    className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-lg transition-all"
+                  >
+                    <Zap className="w-3 h-3 fill-current" />
+                    Otomatisasi Nama Pembawa Acara
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {officialsList.length === 0 ? (
+                    <span className="text-xs text-slate-300 italic">Belum ada nama pembawa acara yang ditambahkan.</span>
+                  ) : (
+                    officialsList.map((name) => (
+                      <div 
+                        key={name}
+                        className="bg-white border border-slate-200 px-3 py-1.5 rounded-full flex items-center gap-2 text-xs font-bold text-slate-600 group hover:border-indigo-200 transition-all"
+                      >
+                        {name}
+                        <button 
+                          onClick={() => handleDeleteOfficial(name)}
+                          className="text-slate-300 hover:text-red-500 transition-colors"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Search & Statistics Bar */}
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-6">
+          <div className="relative w-full sm:max-w-md">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Cari dalam tabel..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-white border border-slate-200 rounded-xl py-3 pl-11 pr-4 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-sm outline-none"
+            />
+          </div>
+          <div className="flex gap-8 text-slate-400">
+            <div className="flex flex-col items-end">
+              <span className="text-[10px] font-bold uppercase tracking-widest">
+                {items.length > 0 
+                  ? `Jumlah Ibadah dari ${items[0].dayDate} sampai ${items[items.length - 1].dayDate}`
+                  : "Jumlah Ibadah"
+                }
+              </span>
+              <span className="text-xl font-black text-slate-900 tabular-nums">{items.length} Kali Sesi Ibadah Lingkungan</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Dynamic Table Container */}
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden print:shadow-none print:border-slate-300">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[1200px]">
+              <thead>
+                <tr className="bg-slate-800 text-white text-[10px] uppercase tracking-[0.15em] font-black">
+                  <th className="py-4 px-6 border-r border-slate-700 w-16 text-center">No</th>
+                  <th className="py-4 px-6 border-r border-slate-700 w-48">Hari / Tanggal</th>
+                  <th className="py-4 px-6 border-r border-slate-700 w-56">Tuan Rumah</th>
+                  <th className="py-4 px-6 border-r border-slate-700 w-64">Alamat</th>
+                  <th className="py-4 px-6 border-r border-slate-700">Pengkhotbah</th>
+                  <th className="py-4 px-6 border-r border-slate-700">Paragenda</th>
+                  <th className="py-4 px-6 border-r border-slate-700">Pembawa Acara</th>
+                  <th className="py-4 px-6 border-r border-slate-700">Keterangan</th>
+                  <th className="py-4 px-6 w-16 text-center print:hidden">X</th>
+                </tr>
+              </thead>
+              <tbody className="text-[13px] font-medium text-slate-600">
+                <AnimatePresence mode="popLayout">
+                  {filteredItems.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="py-32 text-center text-slate-300">
+                        <div className="flex flex-col items-center gap-4">
+                          <div className="w-20 h-20 rounded-full bg-slate-50 flex items-center justify-center">
+                            <Plus className="w-8 h-8" />
+                          </div>
+                          <div className="max-w-xs mx-auto">
+                            <h3 className="text-slate-900 font-bold text-lg mb-1">Belum Ada Jadwal</h3>
+                            <p className="text-sm">Gunakan generator di atas untuk membuat kerangka jadwal Anda.</p>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredItems.map((item, index) => (
+                      <motion.tr
+                        key={item.id}
+                        layout
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className={cn(
+                          "group border-b border-slate-100 transition-colors",
+                          index % 2 === 1 ? "bg-slate-50/30" : "bg-white",
+                          "hover:bg-indigo-50/20"
+                        )}
+                      >
+                        <td className="py-2 px-3 text-center border-r border-slate-100 font-mono text-[11px] text-slate-400">
+                          {index + 1}
+                        </td>
+                        <td className="py-2 px-4 border-r border-slate-100 font-bold text-slate-900">
+                          {item.dayDate}
+                        </td>
+                        <td className="py-0 px-0 border-r border-slate-100 h-full">
+                          <input
+                            placeholder="Keluarga Bp. ..."
+                            value={item.host}
+                            onChange={(e) => handleUpdateItem(item.id, 'host', e.target.value)}
+                            className="w-full h-full p-4 bg-transparent border-none focus:ring-2 focus:ring-inset focus:ring-indigo-500/20 outline-none placeholder:text-slate-200 transition-all"
+                          />
+                        </td>
+                        <td className="py-0 px-0 border-r border-slate-100 h-full">
+                          <textarea
+                            placeholder="Alamat lengkap..."
+                            value={item.address}
+                            onChange={(e) => handleUpdateItem(item.id, 'address', e.target.value)}
+                            rows={1}
+                            className="w-full h-full p-4 bg-transparent border-none focus:ring-2 focus:ring-inset focus:ring-indigo-500/20 outline-none placeholder:text-slate-200 transition-all resize-none min-h-[52px]"
+                          />
+                        </td>
+                        <td className="py-0 px-0 border-r border-slate-100 h-full">
+                          <input
+                            placeholder="Pengkhotbah..."
+                            list="minister-list"
+                            value={item.sermon}
+                            onChange={(e) => handleUpdateItem(item.id, 'sermon', e.target.value)}
+                            className="w-full h-full p-4 bg-transparent border-none focus:ring-2 focus:ring-inset focus:ring-indigo-500/20 outline-none placeholder:text-slate-200 transition-all font-serif italic"
+                          />
+                        </td>
+                        <td className="py-0 px-0 border-r border-slate-100 h-full">
+                          <input
+                            placeholder="Pelayan Paragenda..."
+                            list="agenda-list"
+                            value={item.agenda}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === item.sermon && val !== "") {
+                                notify('Peringatan: Pelayan sudah bertugas di Pengkhotbah', 'error');
+                              }
+                              handleUpdateItem(item.id, 'agenda', val);
+                            }}
+                            className="w-full h-full p-4 bg-transparent border-none focus:ring-2 focus:ring-inset focus:ring-indigo-500/20 outline-none placeholder:text-slate-200 transition-all"
+                          />
+                        </td>
+                        <td className="py-0 px-0 border-r border-slate-100 h-full">
+                          <input
+                            placeholder="Pembawa Acara..."
+                            list="official-list"
+                            value={item.officials}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if ((val === item.sermon || val === item.agenda) && val !== "") {
+                                notify('Peringatan: Pembawa acara sudah bertugas di kategori lain', 'error');
+                              }
+                              handleUpdateItem(item.id, 'officials', val);
+                            }}
+                            className="w-full h-full p-4 bg-transparent border-none focus:ring-2 focus:ring-inset focus:ring-indigo-500/20 outline-none placeholder:text-slate-200 transition-all"
+                          />
+                        </td>
+                        <td className="py-0 px-0 h-full">
+                          <input
+                            placeholder="..."
+                            value={item.notes}
+                            onChange={(e) => handleUpdateItem(item.id, 'notes', e.target.value)}
+                            className="w-full h-full p-4 bg-transparent border-none focus:ring-2 focus:ring-inset focus:ring-indigo-500/20 outline-none placeholder:text-slate-200 transition-all"
+                          />
+                        </td>
+                        <td className="py-2 px-4 print:hidden text-center">
+                          <button
+                            onClick={() => handleDelete(item.id)}
+                            className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </motion.tr>
+                    ))
+                  )}
+                </AnimatePresence>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Footer Info */}
+        <footer className="flex flex-col md:flex-row justify-between items-center text-slate-400 text-[11px] font-bold uppercase tracking-wider py-10 opacity-60">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full bg-green-500"></div>
+              Penyimpanan Lokal Aktif
+            </div>
+            <span>•</span>
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 bg-slate-800 text-white rounded font-mono text-[9px] font-bold">
+                v1.0.{version}
+              </span>
+              <div className="transition-all duration-300 flex items-center gap-2">
+                {isSaving ? (
+                  <div className="flex items-center gap-1.5 text-indigo-500">
+                    <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-ping" />
+                    <span>Sinkronisasi...</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 text-slate-500">
+                    <CheckCircle2 className="w-3 h-3 text-green-500" />
+                    <span>Terakhir Diperbarui: {new Date(lastUpdated).toLocaleDateString('id-ID')} {new Date(lastUpdated).toLocaleTimeString('id-ID')}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="mt-4 md:mt-0 italic normal-case font-medium">Generator Jadwal Ibadah Lingkungan - Made with ❤️</div>
+        </footer>
+      </main>
+
+      {/* Minister Datalist for Sermon Field */}
+      <datalist id="minister-list">
+        {ministers.map(name => (
+          <option key={name} value={name} />
+        ))}
+      </datalist>
+
+      <datalist id="agenda-list">
+        {agendas.map(name => (
+          <option key={name} value={name} />
+        ))}
+      </datalist>
+      
+      <datalist id="official-list">
+        {officialsList.map(name => (
+          <option key={name} value={name} />
+        ))}
+      </datalist>
+
+      <style>{`
+        @media print {
+          @page { size: landscape; margin: 1cm; }
+          body { background: white; -webkit-print-color-adjust: exact; }
+          header, section, .sm\\:max-w-md, .print\\:hidden, #bulk-import-modal { display: none !important; }
+          footer { border-top: 1px solid #e2e8f0; margin-top: 20px; opacity: 1 !important; visibility: visible !important; display: flex !important; }
+          main { max-width: none; width: 100%; padding: 0 !important; margin: 0 !important; }
+          .bg-white { border: none !important; box-shadow: none !important; }
+          .overflow-x-auto { overflow: visible !important; }
+          table { width: 100% !important; border-collapse: collapse !important; border: 1px solid #000 !important; table-layout: fixed !important; min-width: 0 !important; }
+          th, td { border: 1px solid #000 !important; padding: 8px 6px !important; color: #000 !important; word-wrap: break-word !important; vertical-align: middle !important; }
+          th { background: #f8fafc !important; color: #000 !important; font-weight: 800 !important; font-size: 10px !important; text-transform: uppercase !important; }
+          td { font-size: 11px !important; height: auto !important; }
+          input, textarea { background: none !important; border: none !important; padding: 0 !important; font-size: 11px !important; width: 100% !important; height: auto !important; color: #000 !important; font-family: inherit !important; resize: none !important; }
+          .min-h-screen { min-height: auto; background: white; }
+          .group:hover { background: none !important; }
+          tr { page-break-inside: avoid !important; }
+        }
+      `}</style>
+    </div>
+  );
+}

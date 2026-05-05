@@ -1,0 +1,6 @@
+{
+  "name": "Jadwal Ibadah Lingkungan",
+  "description": "Aplikasi manajemen jadwal ibadah lingkungan yang cerdas dengan fitur otomatisasi penempatan pelayan, manajemen tuan rumah massal (bulk import), serta dukungan ekspor ke Excel dan PDF.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
