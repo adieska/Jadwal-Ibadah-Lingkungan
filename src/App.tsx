@@ -488,6 +488,13 @@ export default function App() {
 
   const allStats = getAllStats();
 
+  const getUnassignedHosts = () => {
+    const assignedHostNames = new Set(items.map(item => item.host.trim()).filter(h => h));
+    return hostPool.filter(h => !assignedHostNames.has(h.name.trim()));
+  };
+
+  const unassignedHosts = getUnassignedHosts();
+
   return (
     <div className={cn(
       "min-h-screen font-sans selection:bg-indigo-100 transition-colors duration-500",
@@ -1530,6 +1537,58 @@ export default function App() {
           </div>
         </div>
 
+        {/* Reserve Hosts Section (Tuan Rumah Cadangan) */}
+        {unassignedHosts.length > 0 && (
+          <motion.section 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={cn(
+              "p-6 border rounded-2xl transition-all reserve-print-section",
+              darkMode ? "bg-slate-900/50 border-slate-800" : "bg-slate-50/50 border-slate-200"
+            )}
+          >
+            <div className="flex items-center gap-3 mb-6 print:mb-4">
+              <div className={cn(
+                "w-8 h-8 rounded-lg flex items-center justify-center transition-colors",
+                darkMode ? "bg-amber-900/20 text-amber-400" : "bg-amber-50 text-amber-600"
+              )}>
+                <AlertCircle className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className={cn(
+                  "font-bold text-sm",
+                  darkMode ? "text-slate-100" : "text-slate-800"
+                )}>Tuan Rumah Cadangan</h3>
+                <p className={cn(
+                  "text-[10px] uppercase tracking-widest font-bold",
+                  darkMode ? "text-slate-500" : "text-slate-400"
+                )}>Belum Masuk ke Dalam Jadwal Utama ({unassignedHosts.length} Keluarga)</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {unassignedHosts.map((host, idx) => (
+                <div 
+                  key={idx} 
+                  className={cn(
+                    "p-4 rounded-xl border transition-all",
+                    darkMode ? "bg-slate-950 border-slate-800" : "bg-white border-slate-100 shadow-sm"
+                  )}
+                >
+                  <div className={cn(
+                    "text-xs font-black mb-1",
+                    darkMode ? "text-slate-200" : "text-slate-800"
+                  )}>{host.name}</div>
+                  <div className={cn(
+                    "text-[10px] leading-relaxed",
+                    darkMode ? "text-slate-500" : "text-slate-400"
+                  )}>{host.address}</div>
+                </div>
+              ))}
+            </div>
+          </motion.section>
+        )}
+
         {/* Footer Info */}
         <footer className={cn(
           "flex flex-col md:flex-row justify-between items-center text-[11px] font-bold uppercase tracking-wider py-10 opacity-60 transition-colors",
@@ -1595,6 +1654,7 @@ export default function App() {
           main { max-width: none; width: 100%; padding: 0 !important; margin: 0 !important; }
           .bg-white { border: none !important; box-shadow: none !important; }
           .overflow-x-auto { overflow: visible !important; }
+          .reserve-print-section { margin-top: 2cm; page-break-before: always; }
           table { width: 100% !important; border-collapse: collapse !important; border: 1px solid #000 !important; table-layout: fixed !important; min-width: 0 !important; }
           th, td { border: 1px solid #000 !important; padding: 8px 6px !important; color: #000 !important; word-wrap: break-word !important; vertical-align: middle !important; }
           th { background: #f8fafc !important; color: #000 !important; font-weight: 800 !important; font-size: 10px !important; text-transform: uppercase !important; }

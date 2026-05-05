@@ -1,37 +1,55 @@
 # Jadwal Ibadah Lingkungan 📅
 
-Aplikasi modern berbasis web untuk mengelola dan merancang jadwal ibadah lingkungan secara otomatis, efisien, dan profesional.
+Aplikasi manajemen jadwal ibadah lingkungan yang dirancang untuk membantu pengurus lingkungan mengelola rotasi pelayanan secara cerdas, otomatis, dan profesional. Dibangun dengan fokus pada kemudahan penggunaan, estetika modern, dan fungsionalitas yang kuat.
 
-## ✨ Fitur Utama
+## ✨ Fitur Unggulan
 
-- **Otomatisasi Jadwal**: Menghasilkan deretan tanggal ibadah berdasarkan hari yang dipilih dalam rentang waktu tertentu.
-- **Manajemen Pelayan**: 
-  - **Pengkhotbah**: Kelola daftar pengkhotbah dengan fitur pengisian otomatis.
-  - **Paragenda**: Kelola daftar paragenda dengan logika pencegahan duplikasi tugas (satu orang tidak akan bertugas ganda di kategori yang sama pada hari tersebut).
-  - **Pembawa Acara**: Kelola daftar pembawa acara dengan verifikasi lintas tugas.
-- **Manajemen Tuan Rumah**: Fitur *Bulk Import* (copy-paste) dari Excel atau teks untuk memasukkan nama tuan rumah dan alamat secara massal.
-- **Ekspor Data**: 
-  - **Excel**: Unduh jadwal lengkap dalam format `.xlsx`.
-  - **PDF/Print**: Tata letak yang dioptimalkan untuk pencetakan dokumen fisik.
-- **Penyimpanan Lokal**: Data tetap tersimpan di browser Anda menggunakan `localStorage`.
+### 1. 🤖 Smart Schedule Generator
+*   **Otomatisasi Tanggal**: Hasilkan deretan tanggal ibadah mingguan secara instan berdasarkan rentang waktu yang ditentukan.
+*   **Deteksi Hari**: Cukup pilih hari (misal: "Selasa"), dan sistem akan mencari semua hari tersebut dalam periode yang Anda pilih.
 
-## 🚀 Teknologi
+### 2. 👥 Pool & Rule-Based Assignment
+*   **Database Pelayan Mandiri**: Kelola daftar Pengkhotbah, Paragenda, dan Pembawa Acara secara terpisah.
+*   **Algoritma Anti-Bentrok**: Fitur pengisian otomatis (**Zap ⚡**) memastikan satu orang tidak mendapatkan tugas ganda dalam satu hari yang sama.
+*   **Manajemen Tuan Rumah Massal**: Fitur *Bulk Import* memungkinkan Anda mengimpor puluhan nama tuan rumah dan alamat sekaligus (Copy-Paste dari Excel/WA).
 
-- **Frontend**: [React](https://reactjs.org/) + [Vite](https://vitejs.dev/)
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
-- **Animasi**: [Framer Motion](https://www.framer.com/motion/)
-- **Icons**: [Lucide React](https://lucide.dev/)
-- **Library Excel**: [XLSX (SheetJS)](https://sheetjs.com/)
-- **Bahasa**: [TypeScript](https://www.typescriptlang.org/)
+### 3. 📊 Dashboard Statistik Penugasan
+*   **Real-time Counter**: Lihat berapa kali setiap orang bertugas secara akumulatif.
+*   **Distribusi Adil**: Membantu pengurus memantau beban tugas agar terdistribusi merata di antara semua anggota.
+*   **Indikator Aktif**: Statistik diperbarui secara otomatis setiap kali ada perubahan pada tabel.
 
-## 🛠️ Cara Penggunaan
+### 4. 🏘️ Tuan Rumah & Cadangan (Reserve)
+*   **Sinkronisasi Otomatis**: Sistem mendeteksi keluarga mana yang sudah masuk jadwal dan mana yang belum.
+*   **Bagian Cadangan**: Jika daftar tuan rumah Anda lebih banyak dari jumlah slot jadwal, sisanya akan ditampilkan secara otomatis di bawah tabel sebagai "Tuan Rumah Cadangan".
 
-1. **Atur Hari & Tanggal**: Pilih hari ibadah (misalnya Minggu) dan tentukan rentang waktu. Klik **Generate Baris Baru**.
-2. **Kelola Daftar Pelayan**: Tambahkan nama-nama Pengkhotbah, Paragenda, dan Pembawa Acara.
-3. **Impor Tuan Rumah**: Gunakan tombol **Paste/Impor Data** untuk memasukkan daftar tuan rumah dan alamat secara sekaligus.
-4. **Otomatisasi**: Klik tombol **Zap ⚡** pada masing-masing kategori untuk mengisi jadwal secara otomatis tanpa bentrok tugas.
-5. **Simpan/Cetak**: Klik **Ekspor Excel** untuk pengolahan data lanjut atau **Cetak PDF** untuk dibagikan.
+### 5. 🎨 UI/UX & Formatting
+*   **Dark Mode Support**: Nyaman di mata dengan dukungan penuh mode gelap dan terang.
+*   **Profesional Layout**: Nama pelayan di dalam tabel otomatis diformat menjadi **Bold Italic** untuk standar dokumen formal.
+*   **Responsive Design**: Dapat digunakan dengan baik di PC maupun Smartphone.
+
+### 6. 📤 Ekspor & Cetak
+*   **Export Excel**: Unduh data lengkap dalam format `.xlsx` untuk keperluan pengarsipan digital.
+*   **Print-Ready PDF**: Tata letak yang dioptimalkan untuk dicetak langsung menjadi dokumen fisik dengan margin yang rapi dan font yang terbaca jelas.
+
+## 🚀 Teknologi yang Digunakan
+
+*   **Core**: React 18 + Vite
+*   **Tipe Data**: TypeScript (Type-safe)
+*   **Styling**: Tailwind CSS 4.0
+*   **Animasi**: Framer Motion
+*   **Icons**: Lucide React
+*   **Data Handling**: XLSX (SheetJS)
+*   **Storage**: Browser LocalStorage (Data aman meski tab ditutup/refresh)
+
+## 🛠️ Panduan Penggunaan
+
+1.  **Generate Jadwal**: Tentukan rentang tanggal, pilih hari ibadah, lalu klik **Selesaikan Draft**.
+2.  **Siapkan Daftar**: Masukkan nama-nama pelayan di bagian manajemen (bawah tabel).
+3.  **Impor Tuan Rumah**: Copy daftar nama & alamat dari sumber lain, klik **Kelola Daftar Tuan Rumah** > **Bulk Import**, lalu tempel data Anda.
+4.  **Otomatisasi**: Gunakan tombol **Otomatisasi** (ikon Petir) untuk mengisi kolom yang kosong secara cerdas.
+5.  **Finalisasi**: Edit secara manual jika diperlukan (input tabel bersifat interaktif).
+6.  **Bagikan**: Klik **Cetak Jadwal** atau **Ekspor Excel**.
 
 ## 📄 Lisensi
 
-Proyek ini dibuat untuk keperluan pelayanan lingkungan dan dapat digunakan serta dikembangkan lebih lanjut secara bebas.
+Dibuat dengan ❤️ untuk kemudahan pelayanan umat. Bebas digunakan dan dikembangkan.
