@@ -9,10 +9,12 @@ import {
   Trash2, 
   Download, 
   Printer, 
-  Calendar as CalendarIcon, 
+  Calendar, 
   MapPin, 
   BookOpen, 
   User, 
+  UserCheck,
+  Mic2,
   FileText, 
   Home,
   Save,
@@ -102,6 +104,10 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotification, setShowNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
   const [inIframe, setInIframe] = useState(false);
+  const [showKeterangan, setShowKeterangan] = useState<boolean>(() => {
+    const saved = localStorage.getItem('ibadah_show_keterangan');
+    return saved === 'true';
+  });
 
   const days = [
     { label: 'Minggu', value: 0 },
@@ -163,6 +169,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('ibadah_last_updated', lastUpdated);
   }, [lastUpdated]);
+
+  useEffect(() => {
+    localStorage.setItem('ibadah_show_keterangan', showKeterangan.toString());
+  }, [showKeterangan]);
 
   useEffect(() => {
     localStorage.setItem('ibadah_dark_mode', darkMode.toString());
@@ -440,7 +450,7 @@ export default function App() {
       'Pengkhotbah': item.sermon,
       'Paragenda': item.agenda,
       'Pembawa Acara': item.officials,
-      'Keterangan': item.notes,
+      ...(showKeterangan ? { 'Keterangan': item.notes } : {}),
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -550,13 +560,13 @@ export default function App() {
           "border-b px-8 py-4 sticky top-0 z-40 transition-colors",
           darkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"
         )}>
-          <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="max-w-full mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="flex items-center gap-4">
               <div className={cn(
                 "w-12 h-12 rounded-xl flex items-center justify-center text-white transition-all",
                 darkMode ? "bg-indigo-600 shadow-indigo-900/20" : "bg-indigo-600 shadow-lg shadow-indigo-100"
               )}>
-                <CalendarIcon className="w-6 h-6" />
+                <Calendar className="w-6 h-6" />
               </div>
               <div>
                 <h1 className={cn(
@@ -721,7 +731,7 @@ export default function App() {
           )}
         </AnimatePresence>
 
-        <main className="max-w-[1600px] mx-auto px-8 py-10 space-y-8">
+        <main className="max-w-full mx-auto px-8 py-10 space-y-8">
           {/* Print Title - Visible only when printing */}
           <div className="hidden print:block text-center space-y-2 mb-8">
             <h1 className="text-2xl font-bold text-slate-900">Jadwal Ibadah Lingkungan</h1>
@@ -731,9 +741,28 @@ export default function App() {
 
             {/* Generator Controls - The New Core Feature */}
           <section className={cn(
-            "border rounded-2xl p-6 space-y-8 transition-colors print:hidden",
+            "border rounded-2xl p-6 transition-colors print:hidden",
             darkMode ? "bg-slate-900 border-slate-800 shadow-none" : "bg-white border-slate-200 shadow-sm shadow-indigo-100/30"
           )}>
+            <div className="flex items-center gap-3 mb-8">
+              <div className={cn(
+                "w-8 h-8 rounded-lg flex items-center justify-center",
+                darkMode ? "bg-indigo-900/20 text-indigo-400" : "bg-indigo-50 text-indigo-600"
+              )}>
+                <Calendar className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className={cn(
+                  "font-bold text-sm",
+                  darkMode ? "text-slate-100" : "text-slate-800"
+                )}>Generator Jadwal</h3>
+                <p className={cn(
+                  "text-[10px] uppercase tracking-widest font-bold",
+                  darkMode ? "text-slate-500" : "text-slate-400"
+                )}>Atur periode dan preferensi hari untuk membuat draf jadwal otomatis.</p>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
               <div className="space-y-2">
                 <label className={cn(
@@ -802,131 +831,222 @@ export default function App() {
                 Generate Jadwal
               </button>
             </div>
+          </section>
 
-            {/* Host & Address Management Pool */}
-            <div className={cn(
-              "pt-6 border-t transition-colors",
-              darkMode ? "border-slate-800" : "border-slate-100"
-            )}>
-              <div className="flex flex-col md:flex-row gap-8 items-start">
-                <div className="w-full md:w-1/3 space-y-4">
-                  <div className="flex justify-between items-center">
-                    <label className={cn(
-                      "text-[11px] font-bold uppercase tracking-wider ml-1 transition-colors",
-                      darkMode ? "text-slate-500" : "text-slate-400"
-                    )}>Kelola Daftar Tuan Rumah</label>
-                    <button 
-                      onClick={() => setShowBulkModal(true)}
-                      className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
-                    >
-                      Paste/Impor Data
-                    </button>
-                  </div>
-                  <div className="space-y-2">
-                    <input
-                      type="text"
-                      placeholder="Nama Tuan Rumah"
-                      className={cn(
-                        "w-full border rounded-xl px-4 py-2 text-sm font-semibold outline-none transition-all focus:ring-2 focus:ring-indigo-500",
-                        darkMode 
-                          ? "bg-slate-950 border-slate-800 text-slate-200" 
-                          : "bg-white border-slate-200 text-slate-700 shadow-sm"
-                      )}
-                      value={newHost.name}
-                      onChange={(e) => setNewHost(prev => ({...prev, name: e.target.value}))}
-                    />
-                    <textarea
-                      placeholder="Alamat Lengkap"
-                      rows={2}
-                      className={cn(
-                        "w-full border rounded-xl px-4 py-2 text-sm font-semibold outline-none transition-all focus:ring-2 focus:ring-indigo-500",
-                        darkMode 
-                          ? "bg-slate-950 border-slate-800 text-slate-200" 
-                          : "bg-white border-slate-200 text-slate-700 shadow-sm"
-                      )}
-                      value={newHost.address}
-                      onChange={(e) => setNewHost(prev => ({...prev, address: e.target.value}))}
-                    />
-                    <button
-                      onClick={handleAddHost}
-                      className={cn(
-                        "w-full py-2.5 rounded-xl font-bold transition-all font-black uppercase tracking-widest text-[10px]",
-                        darkMode 
-                          ? "bg-indigo-900/20 text-indigo-400 hover:bg-indigo-900/30" 
-                          : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
-                      )}
-                    >
-                      Tambah ke Daftar
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="flex-1 space-y-4">
-                  <div className="flex justify-between items-end">
-                    <label className={cn(
-                      "text-[11px] font-bold uppercase tracking-wider ml-1 transition-colors",
-                      darkMode ? "text-slate-500" : "text-slate-400"
-                    )}>Daftar Slot Tuan Rumah ({hostPool.length})</label>
-                    <button
-                      onClick={handleAutoFillHosts}
-                      className={cn(
-                        "flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all px-3 py-1.5 rounded-lg",
-                        darkMode 
-                          ? "text-indigo-400 hover:text-indigo-300 bg-indigo-900/20" 
-                          : "text-indigo-600 hover:text-indigo-700 bg-indigo-50"
-                      )}
-                    >
-                      <Zap className="w-3 h-3 fill-current" />
-                      Otomatisasi Tuan Rumah & Alamat
-                    </button>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                    {hostPool.length === 0 ? (
-                      <div className={cn(
-                        "col-span-full py-10 text-center border-2 border-dashed rounded-2xl text-sm italic transition-colors",
-                        darkMode ? "border-slate-800 text-slate-700" : "border-slate-100 text-slate-300"
-                      )}>
-                        Belum ada daftar tuan rumah
-                      </div>
-                    ) : (
-                      hostPool.map((host, idx) => (
-                        <div key={idx} className={cn(
-                          "border p-3 rounded-xl flex justify-between items-start group hover:border-indigo-200 transition-all shadow-sm",
-                          darkMode ? "bg-slate-950 border-slate-800" : "bg-white border-slate-100"
-                        )}>
-                          <div className="space-y-0.5">
-                            <div className={cn(
-                              "text-xs font-black",
-                              darkMode ? "text-slate-200" : "text-slate-800"
-                            )}>{host.name}</div>
-                            <div className={cn(
-                              "text-[10px]",
-                              darkMode ? "text-slate-500" : "text-slate-400"
-                            )}>{host.address}</div>
-                          </div>
-                          <button 
-                            onClick={() => handleDeleteHost(idx)}
-                            className={cn(
-                              "transition-colors opacity-0 group-hover:opacity-100",
-                              darkMode ? "text-slate-800 hover:text-red-500" : "text-slate-200 hover:text-red-500"
-                            )}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
+          {/* Host & Address Management Pool */}
+          <section className={cn(
+            "border rounded-2xl p-6 transition-colors print:hidden",
+            darkMode ? "bg-slate-900 border-slate-800 shadow-none" : "bg-white border-slate-200 shadow-sm shadow-indigo-100/30"
+          )}>
+            <div className="flex items-center gap-3 mb-8">
+              <div className={cn(
+                "w-8 h-8 rounded-lg flex items-center justify-center",
+                darkMode ? "bg-indigo-900/20 text-indigo-400" : "bg-indigo-50 text-indigo-600"
+              )}>
+                <Home className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className={cn(
+                  "font-bold text-sm",
+                  darkMode ? "text-slate-100" : "text-slate-800"
+                )}>Manajemen Tuan Rumah</h3>
+                <p className={cn(
+                  "text-[10px] uppercase tracking-widest font-bold",
+                  darkMode ? "text-slate-500" : "text-slate-400"
+                )}>Input daftar keluarga yang bersedia menjadi tempat ibadah.</p>
               </div>
             </div>
 
+            <div className="flex flex-col md:flex-row gap-8 items-start">
+              <div className="w-full md:w-1/3 space-y-4">
+                <div className="flex justify-between items-center">
+                  <label className={cn(
+                    "text-[11px] font-bold uppercase tracking-wider ml-1 transition-colors",
+                    darkMode ? "text-slate-500" : "text-slate-400"
+                  )}>Kelola Daftar Tuan Rumah</label>
+                  <button 
+                    onClick={() => setShowBulkModal(true)}
+                    className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
+                  >
+                    Paste/Impor Data
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    placeholder="Nama Tuan Rumah"
+                    className={cn(
+                      "w-full border rounded-xl px-4 py-2 text-sm font-semibold outline-none transition-all focus:ring-2 focus:ring-indigo-500",
+                      darkMode 
+                        ? "bg-slate-950 border-slate-800 text-slate-200" 
+                        : "bg-white border-slate-200 text-slate-700 shadow-sm"
+                    )}
+                    value={newHost.name}
+                    onChange={(e) => setNewHost(prev => ({...prev, name: e.target.value}))}
+                  />
+                  <textarea
+                    placeholder="Alamat Lengkap"
+                    rows={2}
+                    className={cn(
+                      "w-full border rounded-xl px-4 py-2 text-sm font-semibold outline-none transition-all focus:ring-2 focus:ring-indigo-500",
+                      darkMode 
+                        ? "bg-slate-950 border-slate-800 text-slate-200" 
+                        : "bg-white border-slate-200 text-slate-700 shadow-sm"
+                    )}
+                    value={newHost.address}
+                    onChange={(e) => setNewHost(prev => ({...prev, address: e.target.value}))}
+                  />
+                  <button
+                    onClick={handleAddHost}
+                    className={cn(
+                      "w-full py-2.5 rounded-xl font-bold transition-all font-black uppercase tracking-widest text-[10px]",
+                      darkMode 
+                        ? "bg-indigo-900/20 text-indigo-400 hover:bg-indigo-900/30" 
+                        : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
+                    )}
+                  >
+                    Tambah ke Daftar
+                  </button>
+                </div>
+              </div>
+              
+              <div className="flex-1 space-y-4">
+                <div className="flex justify-between items-end">
+                  <label className={cn(
+                    "text-[11px] font-bold uppercase tracking-wider ml-1 transition-colors",
+                    darkMode ? "text-slate-500" : "text-slate-400"
+                  )}>Daftar Slot Tuan Rumah ({hostPool.length})</label>
+                  <button
+                    onClick={handleAutoFillHosts}
+                    className={cn(
+                      "flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all px-3 py-1.5 rounded-lg",
+                      darkMode 
+                        ? "text-indigo-400 hover:text-indigo-300 bg-indigo-900/20" 
+                        : "text-indigo-600 hover:text-indigo-700 bg-indigo-50"
+                    )}
+                  >
+                    <Zap className="w-3 h-3 fill-current" />
+                    Inject Tuan Rumah & Alamat
+                  </button>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                  {hostPool.length === 0 ? (
+                    <div className={cn(
+                      "col-span-full py-10 text-center border-2 border-dashed rounded-2xl text-sm italic transition-colors",
+                      darkMode ? "border-slate-800 text-slate-700" : "border-slate-100 text-slate-300"
+                    )}>
+                      Belum ada daftar tuan rumah
+                    </div>
+                  ) : (
+                    hostPool.map((host, idx) => (
+                      <div key={idx} className={cn(
+                        "border p-3 rounded-xl flex justify-between items-start group hover:border-indigo-200 transition-all shadow-sm",
+                        darkMode ? "bg-slate-950 border-slate-800" : "bg-white border-slate-100"
+                      )}>
+                        <div className="space-y-0.5">
+                          <div className={cn(
+                            "text-xs font-black",
+                            darkMode ? "text-slate-200" : "text-slate-800"
+                          )}>{host.name}</div>
+                          <div className={cn(
+                            "text-[10px]",
+                            darkMode ? "text-slate-500" : "text-slate-400"
+                          )}>{host.address}</div>
+                        </div>
+                        <button 
+                          onClick={() => handleDeleteHost(idx)}
+                          className={cn(
+                            "transition-colors opacity-0 group-hover:opacity-100",
+                            darkMode ? "text-slate-800 hover:text-red-500" : "text-slate-200 hover:text-red-500"
+                          )}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Reserve Hosts Section (Tuan Rumah Cadangan) */}
+          {unassignedHosts.length > 0 && (
+            <motion.section 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className={cn(
+                "p-6 border rounded-2xl transition-all shadow-xl shadow-amber-500/5",
+                darkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"
+              )}
+            >
+              <div className="flex items-center gap-3 mb-6">
+                <div className={cn(
+                  "w-8 h-8 rounded-lg flex items-center justify-center transition-colors",
+                  darkMode ? "bg-amber-900/20 text-amber-400" : "bg-amber-50 text-amber-600"
+                )}>
+                  <AlertCircle className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className={cn(
+                    "font-bold text-sm",
+                    darkMode ? "text-slate-100" : "text-slate-800"
+                  )}>Tuan Rumah Cadangan</h3>
+                  <p className={cn(
+                    "text-[10px] uppercase tracking-widest font-bold",
+                    darkMode ? "text-slate-500" : "text-slate-400"
+                  )}>Belum Masuk ke Dalam Jadwal Utama ({unassignedHosts.length} Keluarga)</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {unassignedHosts.map((host, idx) => (
+                  <div 
+                    key={idx} 
+                    className={cn(
+                      "p-4 rounded-xl border transition-all",
+                      darkMode ? "bg-slate-950 border-slate-800" : "bg-white border-slate-100 shadow-sm"
+                    )}
+                  >
+                    <div className={cn(
+                      "text-xs font-black mb-1",
+                      darkMode ? "text-slate-200" : "text-slate-800"
+                    )}>{host.name}</div>
+                    <div className={cn(
+                      "text-[10px] leading-relaxed",
+                      darkMode ? "text-slate-500" : "text-slate-400"
+                    )}>{host.address}</div>
+                  </div>
+                ))}
+              </div>
+            </motion.section>
+          )}
+
           {/* New Minister Management Section */}
-          <div className={cn(
-            "pt-6 border-t transition-colors",
-            darkMode ? "border-slate-800" : "border-slate-100"
+          <section className={cn(
+            "border rounded-2xl p-6 transition-colors print:hidden",
+            darkMode ? "bg-slate-900 border-slate-800 shadow-none" : "bg-white border-slate-200 shadow-sm shadow-indigo-100/30"
           )}>
+            <div className="flex items-center gap-3 mb-8">
+              <div className={cn(
+                "w-8 h-8 rounded-lg flex items-center justify-center",
+                darkMode ? "bg-indigo-900/20 text-indigo-400" : "bg-indigo-50 text-indigo-600"
+              )}>
+                <UserCheck className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className={cn(
+                  "font-bold text-sm",
+                  darkMode ? "text-slate-100" : "text-slate-800"
+                )}>Daftar Pengkhotbah</h3>
+                <p className={cn(
+                  "text-[10px] uppercase tracking-widest font-bold",
+                  darkMode ? "text-slate-500" : "text-slate-400"
+                )}>Kelola nama-nama pelayan yang bertugas membawakan Firman.</p>
+              </div>
+            </div>
+
             <div className="flex flex-col md:flex-row gap-6 items-start">
               <div className="w-full md:w-1/3 space-y-2">
                 <label className={cn(
@@ -972,7 +1092,7 @@ export default function App() {
                     )}
                   >
                     <Zap className="w-3 h-3 fill-current" />
-                    Otomatisasi Nama Pengkhotbah
+                    Inject Nama Pengkhotbah
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -1019,13 +1139,32 @@ export default function App() {
                 </div>
               </div>
             </div>
-          </div>
+          </section>
 
           {/* New Agenda Management Section */}
-          <div className={cn(
-            "pt-6 border-t transition-colors",
-            darkMode ? "border-slate-800" : "border-slate-100"
+          <section className={cn(
+            "border rounded-2xl p-6 transition-colors print:hidden",
+            darkMode ? "bg-slate-900 border-slate-800 shadow-none" : "bg-white border-slate-200 shadow-sm shadow-indigo-100/30"
           )}>
+            <div className="flex items-center gap-3 mb-8">
+              <div className={cn(
+                "w-8 h-8 rounded-lg flex items-center justify-center",
+                darkMode ? "bg-indigo-900/20 text-indigo-400" : "bg-indigo-50 text-indigo-600"
+              )}>
+                <BookOpen className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className={cn(
+                  "font-bold text-sm",
+                  darkMode ? "text-slate-100" : "text-slate-800"
+                )}>Daftar Paragenda</h3>
+                <p className={cn(
+                  "text-[10px] uppercase tracking-widest font-bold",
+                  darkMode ? "text-slate-500" : "text-slate-400"
+                )}>Kelola nama-nama pelayan yang bertugas memandu Liturgi.</p>
+              </div>
+            </div>
+
             <div className="flex flex-col md:flex-row gap-6 items-start">
               <div className="w-full md:w-1/3 space-y-2">
                 <label className={cn(
@@ -1071,7 +1210,7 @@ export default function App() {
                     )}
                   >
                     <Zap className="w-3 h-3 fill-current" />
-                    Otomatisasi Nama Paragenda
+                    Inject Nama Paragenda
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -1118,13 +1257,32 @@ export default function App() {
                 </div>
               </div>
             </div>
-          </div>
+          </section>
 
           {/* New Officials Management Section */}
-          <div className={cn(
-            "pt-6 border-t transition-colors",
-            darkMode ? "border-slate-800" : "border-slate-100"
+          <section className={cn(
+            "border rounded-2xl p-6 transition-colors print:hidden",
+            darkMode ? "bg-slate-900 border-slate-800 shadow-none" : "bg-white border-slate-200 shadow-sm shadow-indigo-100/30"
           )}>
+            <div className="flex items-center gap-3 mb-8">
+              <div className={cn(
+                "w-8 h-8 rounded-lg flex items-center justify-center",
+                darkMode ? "bg-indigo-900/20 text-indigo-400" : "bg-indigo-50 text-indigo-600"
+              )}>
+                <Mic2 className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className={cn(
+                  "font-bold text-sm",
+                  darkMode ? "text-slate-100" : "text-slate-800"
+                )}>Daftar Pembawa Acara</h3>
+                <p className={cn(
+                  "text-[10px] uppercase tracking-widest font-bold",
+                  darkMode ? "text-slate-500" : "text-slate-400"
+                )}>Kelola nama-nama pelayan yang bertugas sebagai MC.</p>
+              </div>
+            </div>
+
             <div className="flex flex-col md:flex-row gap-6 items-start">
               <div className="w-full md:w-1/3 space-y-2">
                 <label className={cn(
@@ -1170,7 +1328,7 @@ export default function App() {
                     )}
                   >
                     <Zap className="w-3 h-3 fill-current" />
-                    Otomatisasi Nama Pembawa Acara
+                    Inject Nama Pembawa Acara
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -1217,46 +1375,9 @@ export default function App() {
                 </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
 
-        {/* Search & Statistics Bar */}
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-6 print:hidden">
-          <div className="relative w-full sm:max-w-md print:hidden">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Cari dalam tabel..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className={cn(
-                "w-full border rounded-xl py-3 pl-11 pr-4 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none",
-                darkMode 
-                  ? "bg-slate-900 border-slate-800 text-slate-100 shadow-none" 
-                  : "bg-white border-slate-200 text-slate-900 shadow-sm shadow-indigo-100/30"
-              )}
-            />
-          </div>
-          <div className={cn(
-            "flex gap-8 transition-colors",
-            darkMode ? "text-slate-500" : "text-slate-400"
-          )}>
-            <div className="flex flex-col items-end">
-              <span className="text-[10px] font-bold uppercase tracking-widest">
-                {items.length > 0 
-                  ? `Jumlah Ibadah dari ${items[0].dayDate} sampai ${items[items.length - 1].dayDate}`
-                  : "Jumlah Ibadah"
-                }
-              </span>
-              <span className={cn(
-                "text-xl font-black tabular-nums transition-colors",
-                darkMode ? "text-slate-100" : "text-slate-900"
-              )}>{items.length} Kali Sesi Ibadah Lingkungan</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Total Assignment Statistics Summary */}
+        {/* Total Assignment Statistics Summary - Moved below servant names */}
         {allStats.length > 0 && (
           <motion.section 
             initial={{ opacity: 0, y: 20 }}
@@ -1365,6 +1486,93 @@ export default function App() {
           </motion.section>
         )}
 
+
+        {/* Search Bar & Stats Summary - Moved right above table */}
+        <div className="flex flex-col gap-8 print:hidden border-t pt-8">
+          <div className="flex items-center gap-3">
+            <div className={cn(
+              "w-8 h-8 rounded-lg flex items-center justify-center",
+              darkMode ? "bg-indigo-900/20 text-indigo-400" : "bg-indigo-50 text-indigo-600"
+            )}>
+              <FileText className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className={cn(
+                "font-bold text-sm",
+                darkMode ? "text-slate-100" : "text-slate-800"
+              )}>Tabel Jadwal Utama</h3>
+              <p className={cn(
+                "text-[10px] uppercase tracking-widest font-bold",
+                darkMode ? "text-slate-500" : "text-slate-400"
+              )}>Cari, filter, dan review draf jadwal.</p>
+            </div>
+          </div>
+
+          <div className="flex flex-col lg:flex-row justify-between items-center gap-6 w-full">
+            <div className="flex flex-col sm:flex-row items-center gap-6 w-full flex-1">
+              <div className="relative flex-1 min-w-[280px]">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Cari dalam tabel..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className={cn(
+                    "w-full border rounded-xl py-3 pl-11 pr-4 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none",
+                    darkMode 
+                      ? "bg-slate-900 border-slate-800 text-slate-100 shadow-none" 
+                      : "bg-white border-slate-200 text-slate-900 shadow-sm shadow-indigo-100/30"
+                  )}
+                />
+              </div>
+              
+              {/* Column Options Toggle */}
+              <div className="flex items-center gap-3 whitespace-nowrap bg-slate-500/5 px-4 py-2 rounded-xl">
+                <label className={cn(
+                  "text-[10px] font-bold uppercase tracking-widest",
+                  darkMode ? "text-slate-500" : "text-slate-400"
+                )}>Apakah Anda perlu kolom keterangan?</label>
+                <button
+                  onClick={() => setShowKeterangan(!showKeterangan)}
+                  className={cn(
+                    "relative inline-flex h-5 w-10 items-center rounded-full transition-colors focus:outline-none",
+                    showKeterangan ? "bg-indigo-600" : (darkMode ? "bg-slate-800" : "bg-slate-200")
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "inline-block h-3 w-3 transform rounded-full bg-white transition-transform",
+                      showKeterangan ? "translate-x-6" : "translate-x-1"
+                    )}
+                  />
+                </button>
+              </div>
+
+              {/* Statistics Inline */}
+              <div className={cn(
+                "flex border-t pt-4 sm:border-t-0 sm:pt-0 sm:border-l sm:pl-6 transition-colors items-center gap-4 h-auto sm:h-10",
+                darkMode ? "border-slate-800 text-slate-500" : "border-slate-200 text-slate-400"
+              )}>
+                <div className="flex flex-col justify-center">
+                  <span className="text-[9px] font-bold uppercase tracking-widest leading-none mb-1 opacity-70">
+                    {items.length > 0 
+                      ? `${items[0].dayDate} - ${items[items.length - 1].dayDate}`
+                      : "Rentang Jadwal"
+                    }
+                  </span>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className={cn(
+                      "text-base font-black tabular-nums transition-colors leading-none",
+                      darkMode ? "text-slate-100" : "text-slate-900"
+                    )}>{items.length}</span>
+                    <span className="text-[9px] font-bold uppercase tracking-wider">Sesi Ibadah</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Dynamic Table Container */}
         <div className={cn(
           "border rounded-2xl shadow-xl overflow-hidden print:shadow-none print:border-slate-300 transition-colors",
@@ -1407,10 +1615,12 @@ export default function App() {
                     "py-4 px-6 border-r transition-colors",
                     darkMode ? "border-slate-800" : "border-slate-100"
                   )}>Pembawa Acara</th>
-                  <th className={cn(
-                    "py-4 px-6 border-r transition-colors",
-                    darkMode ? "border-slate-800" : "border-slate-100"
-                  )}>Keterangan</th>
+                  {showKeterangan && (
+                    <th className={cn(
+                      "py-4 px-6 border-r transition-colors",
+                      darkMode ? "border-slate-800" : "border-slate-100"
+                    )}>Keterangan</th>
+                  )}
                   <th className="py-4 px-6 w-16 text-center print:hidden">X</th>
                 </tr>
               </thead>
@@ -1420,8 +1630,8 @@ export default function App() {
               )}>
                 <AnimatePresence mode="popLayout">
                   {filteredItems.length === 0 ? (
-                    <tr>
-                      <td colSpan={9} className="py-32 text-center">
+                    <tr className="print:hidden">
+                      <td colSpan={showKeterangan ? 9 : 8} className="py-32 text-center">
                         <div className="flex flex-col items-center gap-4">
                           <div className={cn(
                             "w-20 h-20 rounded-full flex items-center justify-center transition-colors",
@@ -1550,20 +1760,22 @@ export default function App() {
                             )}
                           />
                         </td>
-                        <td className={cn(
-                          "py-0 px-0 border-r h-full transition-colors",
-                          darkMode ? "border-slate-800" : "border-slate-100"
-                        )}>
-                          <input
-                            placeholder="..."
-                            value={item.notes}
-                            onChange={(e) => handleUpdateItem(item.id, 'notes', e.target.value)}
-                            className={cn(
-                              "w-full h-full p-4 bg-transparent border-none focus:ring-2 focus:ring-inset focus:ring-indigo-500/20 outline-none transition-all",
-                              darkMode ? "text-slate-300 placeholder:text-slate-800" : "text-slate-700 placeholder:text-slate-200"
-                            )}
-                          />
-                        </td>
+                        {showKeterangan && (
+                          <td className={cn(
+                            "py-0 px-0 border-r h-full transition-colors",
+                            darkMode ? "border-slate-800" : "border-slate-100"
+                          )}>
+                            <input
+                              placeholder="..."
+                              value={item.notes}
+                              onChange={(e) => handleUpdateItem(item.id, 'notes', e.target.value)}
+                              className={cn(
+                                "w-full h-full p-4 bg-transparent border-none focus:ring-2 focus:ring-inset focus:ring-indigo-500/20 outline-none transition-all",
+                                darkMode ? "text-slate-300 placeholder:text-slate-800" : "text-slate-700 placeholder:text-slate-200"
+                              )}
+                            />
+                          </td>
+                        )}
                         <td className="py-2 px-4 print:hidden text-center">
                           <button
                             onClick={() => handleDelete(item.id)}
@@ -1583,58 +1795,6 @@ export default function App() {
             </table>
           </div>
         </div>
-
-        {/* Reserve Hosts Section (Tuan Rumah Cadangan) */}
-        {unassignedHosts.length > 0 && (
-          <motion.section 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={cn(
-              "p-6 border rounded-2xl transition-all reserve-print-section",
-              darkMode ? "bg-slate-900/50 border-slate-800" : "bg-slate-50/50 border-slate-200"
-            )}
-          >
-            <div className="flex items-center gap-3 mb-6 print:mb-4">
-              <div className={cn(
-                "w-8 h-8 rounded-lg flex items-center justify-center transition-colors",
-                darkMode ? "bg-amber-900/20 text-amber-400" : "bg-amber-50 text-amber-600"
-              )}>
-                <AlertCircle className="w-4 h-4" />
-              </div>
-              <div>
-                <h3 className={cn(
-                  "font-bold text-sm",
-                  darkMode ? "text-slate-100" : "text-slate-800"
-                )}>Tuan Rumah Cadangan</h3>
-                <p className={cn(
-                  "text-[10px] uppercase tracking-widest font-bold",
-                  darkMode ? "text-slate-500" : "text-slate-400"
-                )}>Belum Masuk ke Dalam Jadwal Utama ({unassignedHosts.length} Keluarga)</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {unassignedHosts.map((host, idx) => (
-                <div 
-                  key={idx} 
-                  className={cn(
-                    "p-4 rounded-xl border transition-all",
-                    darkMode ? "bg-slate-950 border-slate-800" : "bg-white border-slate-100 shadow-sm"
-                  )}
-                >
-                  <div className={cn(
-                    "text-xs font-black mb-1",
-                    darkMode ? "text-slate-200" : "text-slate-800"
-                  )}>{host.name}</div>
-                  <div className={cn(
-                    "text-[10px] leading-relaxed",
-                    darkMode ? "text-slate-500" : "text-slate-400"
-                  )}>{host.address}</div>
-                </div>
-              ))}
-            </div>
-          </motion.section>
-        )}
 
         {/* Footer Info */}
         <footer className={cn(

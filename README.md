@@ -5,7 +5,7 @@ Aplikasi manajemen jadwal ibadah lingkungan yang dirancang untuk membantu pengur
 ## ✨ Fitur Unggulan
 
 ### 1. 🤖 Smart Schedule Generator
-*   **Otomatisasi Tanggal**: Hasilkan deretan tanggal ibadah mingguan secara instan berdasarkan rentang waktu yang ditentukan.
+*   **Inject Tanggal**: Hasilkan deretan tanggal ibadah mingguan secara instan berdasarkan rentang waktu yang ditentukan.
 *   **Deteksi Hari**: Cukup pilih hari (misal: "Selasa"), dan sistem akan mencari semua hari tersebut dalam periode yang Anda pilih.
 
 ### 2. 👥 Pool & Rule-Based Assignment
@@ -46,7 +46,7 @@ Aplikasi manajemen jadwal ibadah lingkungan yang dirancang untuk membantu pengur
 1.  **Generate Jadwal**: Tentukan rentang tanggal, pilih hari ibadah, lalu klik **Selesaikan Draft**.
 2.  **Siapkan Daftar**: Masukkan nama-nama pelayan di bagian manajemen (bawah tabel).
 3.  **Impor Tuan Rumah**: Copy daftar nama & alamat dari sumber lain, klik **Kelola Daftar Tuan Rumah** > **Bulk Import**, lalu tempel data Anda.
-4.  **Otomatisasi**: Gunakan tombol **Otomatisasi** (ikon Petir) untuk mengisi kolom yang kosong secara cerdas.
+4.  **Inject**: Gunakan tombol **Inject** (ikon Petir) untuk mengisi kolom yang kosong secara cerdas.
 5.  **Finalisasi**: Edit secara manual jika diperlukan (input tabel bersifat interaktif).
 6.  **Bagikan**: Klik **Cetak Jadwal** atau **Ekspor Excel**.
 
